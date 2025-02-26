@@ -1,0 +1,21 @@
+:root {
+    --neon-green: #18cae6;
+    --neon-blue: #0ff;
+    --dark-bg: #000;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    background-color: var(--dark-bg);
+    color: var(--neon-green);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  
+  #root {
+    width: 100%;
+    min-height: 100vh;
+  }
+  
