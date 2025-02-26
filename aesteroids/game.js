@@ -85,10 +85,18 @@ class Vector {
             this.x /= mag;
             this.y /= mag;
         }
+        return this;
     }
 
     clone() {
         return new Vector(this.x, this.y);
+    }
+    
+    // Get direction from this vector to target vector
+    directionTo(target) {
+        const dx = target.x - this.x;
+        const dy = target.y - this.y;
+        return new Vector(dx, dy).normalize();
     }
 }
 
@@ -121,7 +129,7 @@ class Ship {
         this.rotation = 0;
         this.thrust = 0.1;
         this.rotationSpeed = 0.05;
-        this.size = 25; // Increased ship size for better visibility
+        this.size = 25; // Ship size
         this.isThrusting = false;
         this.bullets = [];
         this.shootCooldown = 0;
@@ -129,6 +137,9 @@ class Ship {
         this.invulnerable = false;
         this.invulnerabilityTime = 0;
         this.thrustSound = false;
+        this.activeTurret = 'left'; // Track which turret to fire from
+        this.leftTurretRecoil = 0;  // Recoil animation for left turret
+        this.rightTurretRecoil = 0; // Recoil animation for right turret
     }
 
     update() {
@@ -173,9 +184,19 @@ class Ship {
                 this.invulnerable = false;
             }
         }
-
+        
+        // Update bullet positions
         this.bullets.forEach(bullet => bullet.update());
         this.bullets = this.bullets.filter(bullet => bullet.lifespan > 0);
+        
+        // Update turret recoil animation
+        if (this.leftTurretRecoil > 0) {
+            this.leftTurretRecoil -= 0.5;
+        }
+        
+        if (this.rightTurretRecoil > 0) {
+            this.rightTurretRecoil -= 0.5;
+        }
     }
 
     draw() {
@@ -191,11 +212,29 @@ class Ship {
         ctx.beginPath();
         ctx.moveTo(this.size, 0);
         ctx.lineTo(-this.size / 2, this.size / 2);
-        ctx.lineTo(-this.size / 3, 0);  // Added indent
+        ctx.lineTo(-this.size / 3, 0);  // Indent
         ctx.lineTo(-this.size / 2, -this.size / 2);
         ctx.closePath();
         ctx.strokeStyle = '#0f0';
         ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Draw left turret with recoil
+        const leftTurretLength = 10 - this.leftTurretRecoil;
+        ctx.beginPath();
+        ctx.moveTo(this.size/2, -this.size/3);
+        ctx.lineTo(this.size/2 + leftTurretLength, -this.size/3);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#0f0';
+        ctx.stroke();
+        
+        // Draw right turret with recoil
+        const rightTurretLength = 10 - this.rightTurretRecoil;
+        ctx.beginPath();
+        ctx.moveTo(this.size/2, this.size/3);
+        ctx.lineTo(this.size/2 + rightTurretLength, this.size/3);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#0f0';
         ctx.stroke();
 
         // Draw improved thruster flame if thrusting
@@ -256,10 +295,30 @@ class Ship {
     stopThrust() { this.isThrusting = false; }
 
     shoot() {
+        // Get bullet direction based on ship rotation
         const bulletVelocity = new Vector(Math.cos(this.rotation), Math.sin(this.rotation));
         bulletVelocity.multiply(5);
         bulletVelocity.add(this.velocity);
-        this.bullets.push(new Bullet(this.position, bulletVelocity));
+        
+        // Create bullet from the appropriate turret
+        let bulletPosition;
+        if (this.activeTurret === 'left') {
+            // Calculate left turret position
+            const turretX = Math.cos(this.rotation) * (this.size/2) - Math.sin(this.rotation) * (this.size/3);
+            const turretY = Math.sin(this.rotation) * (this.size/2) + Math.cos(this.rotation) * (this.size/3);
+            bulletPosition = new Vector(this.position.x + turretX, this.position.y + turretY);
+            this.leftTurretRecoil = 5; // Apply recoil to left turret
+            this.activeTurret = 'right'; // Switch to right turret for next shot
+        } else {
+            // Calculate right turret position
+            const turretX = Math.cos(this.rotation) * (this.size/2) + Math.sin(this.rotation) * (this.size/3);
+            const turretY = Math.sin(this.rotation) * (this.size/2) - Math.cos(this.rotation) * (this.size/3);
+            bulletPosition = new Vector(this.position.x + turretX, this.position.y + turretY);
+            this.rightTurretRecoil = 5; // Apply recoil to right turret
+            this.activeTurret = 'left'; // Switch to left turret for next shot
+        }
+        
+        this.bullets.push(new Bullet(bulletPosition, bulletVelocity));
         playSound(audio.shoot);
     }
 }
@@ -268,7 +327,7 @@ class Bullet {
     constructor(position, velocity) {
         this.position = position.clone();
         this.velocity = velocity.clone();
-        this.size = 3; // Increased bullet size
+        this.size = 3; // Bullet size
         this.lifespan = 60;
     }
 
@@ -291,14 +350,22 @@ class Bullet {
 }
 
 class Asteroid {
-    constructor(size = 3, position = null) {
+    constructor(size = 3, position = null, targetPosition = null) {
         this.size = size; // 3: large, 2: medium, 1: small
-        this.radius = size * 15; // Increased asteroid size
+        this.radius = size * 15; // Asteroid size
         this.position = position ? position.clone() : this.randomEdgePosition();
         
-        // Increase asteroid speed for faster gameplay
-        this.velocity = new Vector(Math.random() * 3 - 1.5, Math.random() * 3 - 1.5);
-        this.velocity.multiply(1 + (3 - size) * 0.5); // Smaller asteroids move faster
+        // If target position is provided, set velocity towards it
+        if (targetPosition) {
+            const direction = this.position.directionTo(targetPosition);
+            // Base speed depends on asteroid size (smaller = faster)
+            const speed = 1.5 + (3 - size) * 0.5;
+            this.velocity = new Vector(direction.x * speed, direction.y * speed);
+        } else {
+            // Random velocity with slight targeting
+            this.velocity = new Vector(Math.random() * 3 - 1.5, Math.random() * 3 - 1.5);
+            this.velocity.multiply(1 + (3 - size) * 0.5); // Smaller asteroids move faster
+        }
         
         this.rotation = 0;
         this.rotationSpeed = Math.random() * 0.05 - 0.025;
@@ -352,14 +419,203 @@ class Asteroid {
     }
 }
 
+class EnemyShip {
+    constructor(level) {
+        // Choose a random edge to spawn from
+        this.position = this.randomEdgePosition();
+        
+        // Speed increases with game level
+        const speed = 1 + level * 0.1;
+        this.velocity = new Vector(Math.random() * speed - speed/2, Math.random() * speed - speed/2);
+        
+        this.rotation = Math.random() * Math.PI * 2;
+        this.rotationSpeed = 0.02;
+        this.size = 30;
+        
+        // Health increases with level
+        this.health = 5 + Math.floor(level / 2);
+        this.maxHealth = this.health;
+        
+        this.bullets = [];
+        this.shootCooldown = 0;
+        this.shootInterval = Math.max(90 - level * 5, 40); // Shoots faster at higher levels
+        
+        // Flash effect when hit
+        this.hitEffect = 0;
+    }
+    
+    randomEdgePosition() {
+        const edge = Math.floor(Math.random() * 4);
+        const padding = 50;
+        switch (edge) {
+            case 0: return new Vector(Math.random() * canvas.width, -padding);
+            case 1: return new Vector(canvas.width + padding, Math.random() * canvas.height);
+            case 2: return new Vector(Math.random() * canvas.width, canvas.height + padding);
+            case 3: return new Vector(-padding, Math.random() * canvas.height);
+        }
+    }
+    
+    update(shipPosition) {
+        // Sometimes change direction to follow the player
+        if (Math.random() < 0.01) {
+            const direction = this.position.directionTo(shipPosition);
+            this.velocity = new Vector(direction.x, direction.y);
+            this.velocity.multiply(1.5);
+        }
+        
+        // Occasionally change rotation
+        if (Math.random() < 0.02) {
+            this.rotation += Math.random() * Math.PI - Math.PI/2;
+        }
+        
+        // Move
+        this.position.add(this.velocity);
+        
+        // Rotate
+        this.rotation += this.rotationSpeed;
+        
+        // Screen wrap-around
+        if (this.position.x < -this.size) this.position.x = canvas.width + this.size;
+        if (this.position.x > canvas.width + this.size) this.position.x = -this.size;
+        if (this.position.y < -this.size) this.position.y = canvas.height + this.size;
+        if (this.position.y > canvas.height + this.size) this.position.y = -this.size;
+        
+        // Shooting logic
+        this.shootCooldown--;
+        if (this.shootCooldown <= 0) {
+            this.shoot(shipPosition);
+            this.shootCooldown = this.shootInterval;
+        }
+        
+        // Update bullets
+        this.bullets.forEach(bullet => bullet.update());
+        this.bullets = this.bullets.filter(bullet => bullet.lifespan > 0);
+        
+        // Decrease hit effect
+        if (this.hitEffect > 0) {
+            this.hitEffect--;
+        }
+    }
+    
+    shoot(targetPosition) {
+        // Calculate direction to player
+        const direction = this.position.directionTo(targetPosition);
+        
+        // Add some inaccuracy
+        const angle = Math.atan2(direction.y, direction.x);
+        const inaccuracy = Math.random() * 0.3 - 0.15; // +/- 0.15 radians
+        const bulletDirection = new Vector(
+            Math.cos(angle + inaccuracy),
+            Math.sin(angle + inaccuracy)
+        );
+        
+        // Set bullet velocity
+        const bulletVelocity = new Vector(bulletDirection.x * 4, bulletDirection.y * 4);
+        
+        // Create the bullet
+        this.bullets.push(new EnemyBullet(this.position.clone(), bulletVelocity));
+        
+        // Play shooting sound
+        playSound(audio.shoot);
+    }
+    
+    draw() {
+        ctx.save();
+        ctx.translate(this.position.x, this.position.y);
+        ctx.rotate(this.rotation);
+        
+        // Draw enemy ship (hexagonal shape)
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const x = Math.cos(angle) * this.size;
+            const y = Math.sin(angle) * this.size;
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        ctx.closePath();
+        
+        // Fill with color based on hit effect
+        if (this.hitEffect > 0) {
+            ctx.fillStyle = '#ff0000';
+            ctx.fill();
+        }
+        
+        // Outline
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Draw health bar
+        const healthBarWidth = this.size * 2;
+        const healthBarHeight = 5;
+        const healthPercent = this.health / this.maxHealth;
+        
+        ctx.fillStyle = '#ff0000';
+        ctx.fillRect(-healthBarWidth/2, -this.size - 10, healthBarWidth * healthPercent, healthBarHeight);
+        
+        ctx.strokeStyle = '#ff0000';
+        ctx.strokeRect(-healthBarWidth/2, -this.size - 10, healthBarWidth, healthBarHeight);
+        
+        ctx.restore();
+        
+        // Draw bullets
+        this.bullets.forEach(bullet => bullet.draw());
+    }
+    
+    hit() {
+        this.health--;
+        this.hitEffect = 10;
+        
+        // Play hit sound
+        playSound(audio.bloopHigh);
+        
+        // Return true if destroyed
+        return this.health <= 0;
+    }
+}
+
+class EnemyBullet {
+    constructor(position, velocity) {
+        this.position = position;
+        this.velocity = velocity;
+        this.size = 3;
+        this.lifespan = 120;
+    }
+    
+    update() {
+        this.position.add(this.velocity);
+        
+        // Screen wrap-around
+        if (this.position.x < 0) this.position.x = canvas.width;
+        if (this.position.x > canvas.width) this.position.x = 0;
+        if (this.position.y < 0) this.position.y = canvas.height;
+        if (this.position.y > canvas.height) this.position.y = 0;
+        
+        this.lifespan--;
+    }
+    
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.position.x, this.position.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = '#ff0000';
+        ctx.fill();
+    }
+}
+
 // Game state
 let ship = new Ship();
 let asteroids = [];
+let enemyShips = [];
 let particles = [];
 let score = 0;
 let gameOver = false;
 let level = 1;
 let gameStarted = false;
+let enemySpawnTimer = 0;
 
 function playSound(sound) {
     if (!audioCtx) return; // Don't play if audio isn't initialized
@@ -370,10 +626,21 @@ function playSound(sound) {
     sound.play().catch(e => console.log("Sound playback failed:", e));
 }
 
-function spawnAsteroids(count = 7) { // Increased default asteroid count
+function spawnAsteroids(count = 10) { // Increased asteroid count
     for (let i = 0; i < count; i++) {
-        asteroids.push(new Asteroid());
+        // Determine if asteroid should target the player
+        const shouldTarget = Math.random() < 0.4; // 40% chance to target player
+        
+        if (shouldTarget && ship) {
+            asteroids.push(new Asteroid(3, null, ship.position));
+        } else {
+            asteroids.push(new Asteroid());
+        }
     }
+}
+
+function spawnEnemyShip() {
+    enemyShips.push(new EnemyShip(level));
 }
 
 function circlesCollide(pos1, radius1, pos2, radius2) {
@@ -391,6 +658,29 @@ function startGame() {
 
 function returnToHome() {
     window.location.href = "../index.html";
+}
+
+function createExplosion(position, size, count) {
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 3 + 1;
+        const velocity = new Vector(
+            Math.cos(angle) * speed,
+            Math.sin(angle) * speed
+        );
+        
+        // Random color from red to yellow
+        const r = 255;
+        const g = Math.floor(Math.random() * 200 + 55);
+        const b = 0;
+        const color = `rgb(${r}, ${g}, ${b})`;
+        
+        // Random particle size and lifespan
+        const particleSize = Math.random() * size/5 + 1;
+        const lifespan = Math.random() * 30 + 30;
+        
+        particles.push(new Particle(position, velocity, particleSize, color, lifespan));
+    }
 }
 
 function gameLoop() {
@@ -434,8 +724,9 @@ function gameLoop() {
         if (keys[' ']) {
             ship = new Ship();
             asteroids = [];
+            enemyShips = [];
             particles = [];
-            spawnAsteroids(6 + level);
+            spawnAsteroids(8 + level);
             score = 0;
             level = 1;
             gameOver = false;
@@ -459,10 +750,21 @@ function gameLoop() {
     // Update game objects
     ship.update();
     asteroids.forEach(asteroid => asteroid.update());
+    enemyShips.forEach(enemy => enemy.update(ship.position));
     particles.forEach(particle => particle.update());
+    
+    // Filter out dead particles
     particles = particles.filter(p => p.lifespan > 0);
 
-    // Check collisions
+    // Enemy ship spawning
+    enemySpawnTimer--;
+    if (enemySpawnTimer <= 0 && enemyShips.length < 1 + Math.floor(level / 3)) {
+        spawnEnemyShip();
+        // Spawn enemy ships less frequently at higher levels
+        enemySpawnTimer = Math.max(1200 - level * 50, 600);
+    }
+
+    // Check ship-asteroid collisions
     asteroids.forEach(asteroid => {
         if (circlesCollide(ship.position, ship.size / 2, asteroid.position, asteroid.radius)) {
             if (ship.hit()) {
@@ -470,9 +772,46 @@ function gameLoop() {
             }
         }
     });
+    
+    // Check ship-enemy bullet collisions
+    enemyShips.forEach(enemy => {
+        enemy.bullets.forEach((bullet, bulletIndex) => {
+            if (circlesCollide(ship.position, ship.size / 2, bullet.position, bullet.size)) {
+                // Remove the bullet
+                enemy.bullets.splice(bulletIndex, 1);
+                
+                // Hit the player
+                if (ship.hit()) {
+                    gameOver = true;
+                }
+            }
+        });
+    });
+    
+    // Check ship-enemy ship collisions
+    enemyShips.forEach((enemy, enemyIndex) => {
+        if (circlesCollide(ship.position, ship.size, enemy.position, enemy.size/2)) {
+            if (ship.hit()) {
+                gameOver = true;
+            }
+            
+            // Also damage enemy
+            if (enemy.hit()) {
+                // Create explosion
+                createExplosion(enemy.position, enemy.size, 30);
+                
+                // Remove enemy
+                enemyShips.splice(enemyIndex, 1);
+                
+                // Award points
+                score += 1000;
+            }
+        }
+    })
 
-    // Handle bullet collisions
+    // Handle ship bullets collisions with asteroids
     ship.bullets.forEach((bullet, bIdx) => {
+        // Check bullet-asteroid collisions
         asteroids.forEach((asteroid, aIdx) => {
             if (circlesCollide(bullet.position, bullet.size, asteroid.position, asteroid.radius)) {
                 // Remove bullet
@@ -491,7 +830,7 @@ function gameLoop() {
                     }
                 }
                 
-                // Create more particles for better explosion effect
+                // Create particles
                 for (let i = 0; i < 15; i++) {
                     const vel = new Vector(Math.random() * 3 - 1.5, Math.random() * 3 - 1.5);
                     vel.multiply(2);
@@ -503,22 +842,53 @@ function gameLoop() {
                 score += (4 - asteroid.size) * 100;
             }
         });
+        
+        // Check bullet-enemy ship collisions
+        enemyShips.forEach((enemy, enemyIdx) => {
+            if (circlesCollide(bullet.position, bullet.size, enemy.position, enemy.size / 2)) {
+                // Remove bullet
+                ship.bullets.splice(bIdx, 1);
+                
+                // Damage enemy
+                if (enemy.hit()) {
+                    // Create explosion
+                    createExplosion(enemy.position, enemy.size, 30);
+                    
+                    // Remove enemy
+                    enemyShips.splice(enemyIdx, 1);
+                    
+                    // Award points
+                    score += 1000;
+                }
+            }
+        });
     });
 
     // Add spontaneous asteroids to keep the game from getting empty
     if (asteroids.length < 3 + level) {
-        asteroids.push(new Asteroid());
+        // Target player with 40% chance
+        if (Math.random() < 0.4) {
+            asteroids.push(new Asteroid(3, null, ship.position));
+        } else {
+            asteroids.push(new Asteroid());
+        }
     }
 
     // Check for level completion - now requires fewer asteroids
-    if (asteroids.length <= 2) {
+    if (asteroids.length <= 2 && enemyShips.length === 0) {
         level++;
-        spawnAsteroids(6 + level); // Increased asteroid count per level
+        spawnAsteroids(8 + level); // Increased asteroid count per level
+        
+        // Spawn an enemy ship for the new level
+        if (level >= 2) {
+            enemySpawnTimer = 300; // Spawn enemy soon after new level
+        }
     }
 
     // Draw everything
     ship.draw();
     asteroids.forEach(asteroid => asteroid.draw());
+    enemyShips.forEach(enemy => enemy.draw());
     particles.forEach(particle => particle.draw());
 
     // Draw HUD with better positioning
@@ -529,6 +899,11 @@ function gameLoop() {
     ctx.fillText(`Score: ${score}`, padding, padding + 25);
     ctx.fillText(`Lives: ${ship.lives}`, padding, padding + 60);
     ctx.fillText(`Level: ${level}`, padding, padding + 95);
+    
+    // Show enemy count if there are any
+    if (enemyShips.length > 0) {
+        ctx.fillText(`Enemy ships: ${enemyShips.length}`, padding, padding + 130);
+    }
 
     // Draw ESC hint
     ctx.textAlign = 'right';
@@ -550,5 +925,5 @@ window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 window.addEventListener('click', startGame);
 
 // Start the game
-spawnAsteroids(7); // Start with more asteroids
+spawnAsteroids(10); // Start with more asteroids
 gameLoop();
