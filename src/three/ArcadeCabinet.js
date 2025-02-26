@@ -4,7 +4,8 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
+// Add a global reference to access from console
+window.arcadeCabinetInstance = null;
 class ArcadeCabinet {
   constructor(container) {
     this.container = container;
@@ -23,7 +24,10 @@ class ArcadeCabinet {
       buttons: []
     };
     this.modelLoaded = false;
-
+    this.positionLogger = null;
+    this.lastLogTime = 0;
+    this.logInterval = 1000; // Log every 1 second
+    window.arcadeCabinetInstance = this;
     this.init();
   }
 
@@ -33,31 +37,45 @@ class ArcadeCabinet {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x000000);
 
-    // Add lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    // Add lights with more dramatic lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
     this.scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(5, 10, 7);
-    this.scene.add(directionalLight);
+    // Add more directional lights for better illumination
+    const frontLight = new THREE.DirectionalLight(0x18cae6, 1.0); // Cyan-blue light from front
+    frontLight.position.set(0, 0, 5);
+    this.scene.add(frontLight);
 
-    // Create camera
+    const topLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    topLight.position.set(0, 5, 0);
+    this.scene.add(topLight);
+
+    // Create camera with fixed position
     const width = this.container.clientWidth;
     const height = this.container.clientHeight;
-    this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    this.camera.position.set(0, 1.2, 2.2);
+    this.camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+    
+    // Initial camera position
+    this.camera.position.set(8, 4, 2);
+    this.camera.lookAt(0, 0, 0);
 
     // Create renderer
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ 
+      antialias: true,
+      alpha: true // Enable transparency
+    });
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.shadowMap.enabled = true;
     this.container.appendChild(this.renderer.domElement);
 
-    // Add orbit controls for development
+    // Enable orbit controls for interactive rotation
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
+    this.controls.dampingFactor = 0.25;
+    this.controls.screenSpacePanning = false;
+    this.controls.maxPolarAngle = Math.PI;
+    this.controls.update();
 
     // Add a loading indicator
     this.addLoadingIndicator();
@@ -71,12 +89,255 @@ class ArcadeCabinet {
     // Add click event listener for interaction
     this.renderer.domElement.addEventListener('click', this.onClick.bind(this));
 
+    // Create position logger display
+    this.createPositionLogger();
+
     // Start animation loop
     this.animate();
     
     console.log('ArcadeCabinet initialization complete');
   }
 
+  createPositionLogger() {
+    // Create a div for displaying position information
+    const loggerDiv = document.createElement('div');
+    loggerDiv.style.position = 'absolute';
+    loggerDiv.style.bottom = '10px';
+    loggerDiv.style.left = '10px';
+    loggerDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    loggerDiv.style.color = '#18cae6';
+    loggerDiv.style.padding = '10px';
+    loggerDiv.style.borderRadius = '5px';
+    loggerDiv.style.fontFamily = 'monospace';
+    loggerDiv.style.zIndex = '1000';
+    this.container.appendChild(loggerDiv);
+    this.positionLogger = loggerDiv;
+  }
+
+// Add this method to the ArcadeCabinet class
+// Replace the second implementation of addRotationControls with this:
+addRotationControls() {
+    const controlsDiv = document.createElement('div');
+    controlsDiv.style.position = 'absolute';
+    controlsDiv.style.top = '10px';
+    controlsDiv.style.right = '10px';
+    controlsDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    controlsDiv.style.color = '#18cae6';
+    controlsDiv.style.padding = '10px';
+    controlsDiv.style.borderRadius = '5px';
+    controlsDiv.style.fontFamily = 'monospace';
+    controlsDiv.style.zIndex = '1000';
+    
+    controlsDiv.innerHTML = `
+      <h3>Model Controls</h3>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 10px;">
+        <div style="text-align: center; font-weight: bold;">X-Axis</div>
+        <div style="text-align: center; font-weight: bold;">Y-Axis</div>
+        <div style="text-align: center; font-weight: bold;">Z-Axis</div>
+        
+        <button id="rotateXPlus" style="padding: 5px; background: #18cae6; color: black; border: none; border-radius: 3px; cursor: pointer;">
+          X +
+        </button>
+        <button id="rotateYPlus" style="padding: 5px; background: #18cae6; color: black; border: none; border-radius: 3px; cursor: pointer;">
+          Y +
+        </button>
+        <button id="rotateZPlus" style="padding: 5px; background: #18cae6; color: black; border: none; border-radius: 3px; cursor: pointer;">
+          Z +
+        </button>
+        
+        <button id="rotateXMinus" style="padding: 5px; background: #18cae6; color: black; border: none; border-radius: 3px; cursor: pointer;">
+          X -
+        </button>
+        <button id="rotateYMinus" style="padding: 5px; background: #18cae6; color: black; border: none; border-radius: 3px; cursor: pointer;">
+          Y -
+        </button>
+        <button id="rotateZMinus" style="padding: 5px; background: #18cae6; color: black; border: none; border-radius: 3px; cursor: pointer;">
+          Z -
+        </button>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+        <button id="savePosition" style="padding: 5px; background: #18cae6; color: black; border: none; border-radius: 3px; cursor: pointer;">
+          Save Position
+        </button>
+        <button id="resetPosition" style="padding: 5px; background: #18cae6; color: black; border: none; border-radius: 3px; cursor: pointer;">
+          Reset Position
+        </button>
+      </div>
+      
+      <div style="margin-top: 10px;">
+        <div style="font-weight: bold;">Rotation Amount:</div>
+        <input type="range" id="rotationAmount" min="1" max="45" value="5" style="width: 100%;">
+        <div style="display: flex; justify-content: space-between;">
+          <span>1°</span>
+          <span id="rotationValue">5°</span>
+          <span>45°</span>
+        </div>
+      </div>
+      
+      <div style="margin-top: 10px; border-top: 1px solid #18cae6; padding-top: 10px;">
+        <div style="font-weight: bold;">Keyboard Controls:</div>
+        <div>Q/A: X-axis +/-</div>
+        <div>W/S: Y-axis +/-</div>
+        <div>E/D: Z-axis +/-</div>
+      </div>
+    `;
+    
+    this.container.appendChild(controlsDiv);
+    
+    // Add event listeners
+    document.getElementById('savePosition').addEventListener('click', () => {
+      this.debug('savePosition');
+    });
+    
+    document.getElementById('resetPosition').addEventListener('click', () => {
+      this.debug('reset');
+    });
+    
+    const rotationSlider = document.getElementById('rotationAmount');
+    const rotationValue = document.getElementById('rotationValue');
+    
+    rotationSlider.addEventListener('input', () => {
+      rotationValue.textContent = `${rotationSlider.value}°`;
+    });
+    
+    // Rotation controls
+    const getRotationAmount = () => {
+      return parseInt(rotationSlider.value) * (Math.PI / 180); // Convert to radians
+    };
+    
+    document.getElementById('rotateXPlus').addEventListener('click', () => {
+      if (this.cabinet) {
+        this.cabinet.rotation.x += getRotationAmount();
+        this.updatePositionLogger(true);
+      }
+    });
+    
+    document.getElementById('rotateXMinus').addEventListener('click', () => {
+      if (this.cabinet) {
+        this.cabinet.rotation.x -= getRotationAmount();
+        this.updatePositionLogger(true);
+      }
+    });
+    
+    document.getElementById('rotateYPlus').addEventListener('click', () => {
+      if (this.cabinet) {
+        this.cabinet.rotation.y += getRotationAmount();
+        this.updatePositionLogger(true);
+      }
+    });
+    
+    document.getElementById('rotateYMinus').addEventListener('click', () => {
+      if (this.cabinet) {
+        this.cabinet.rotation.y -= getRotationAmount();
+        this.updatePositionLogger(true);
+      }
+    });
+    
+    document.getElementById('rotateZPlus').addEventListener('click', () => {
+      if (this.cabinet) {
+        this.cabinet.rotation.z += getRotationAmount();
+        this.updatePositionLogger(true);
+      }
+    });
+    
+    document.getElementById('rotateZMinus').addEventListener('click', () => {
+      if (this.cabinet) {
+        this.cabinet.rotation.z -= getRotationAmount();
+        this.updatePositionLogger(true);
+      }
+    });
+    
+    // Add keyboard controls for rotation
+    window.addEventListener('keydown', (e) => {
+      if (!this.cabinet) return;
+      
+      const amount = getRotationAmount();
+      
+      switch(e.key) {
+        case 'q': // X-axis plus
+          this.cabinet.rotation.x += amount;
+          break;
+        case 'a': // X-axis minus
+          this.cabinet.rotation.x -= amount;
+          break;
+        case 'w': // Y-axis plus
+          this.cabinet.rotation.y += amount;
+          break;
+        case 's': // Y-axis minus
+          this.cabinet.rotation.y -= amount;
+          break;
+        case 'e': // Z-axis plus
+          this.cabinet.rotation.z += amount;
+          break;
+        case 'd': // Z-axis minus
+          this.cabinet.rotation.z -= amount;
+          break;
+      }
+      
+      if (['q', 'a', 'w', 's', 'e', 'd'].includes(e.key)) {
+        this.updatePositionLogger(true);
+        e.preventDefault();
+      }
+    });
+  }
+  
+  // Update the updatePositionLogger method to force updates
+  updatePositionLogger(force = false) {
+    if (!this.positionLogger || !this.cabinet) return;
+    
+    const currentTime = Date.now();
+    if (!force && currentTime - this.lastLogTime < this.logInterval) return;
+    
+    this.lastLogTime = currentTime;
+    
+    const cameraPos = this.camera.position;
+    const cameraRot = new THREE.Euler().setFromQuaternion(this.camera.quaternion);
+    const modelRot = this.cabinet.rotation;
+    const modelPos = this.cabinet.position;
+    
+    // Format position and rotation data
+    const posInfo = {
+      camera: {
+        position: {
+          x: cameraPos.x.toFixed(2),
+          y: cameraPos.y.toFixed(2),
+          z: cameraPos.z.toFixed(2)
+        },
+        rotation: {
+          x: THREE.MathUtils.radToDeg(cameraRot.x).toFixed(2),
+          y: THREE.MathUtils.radToDeg(cameraRot.y).toFixed(2),
+          z: THREE.MathUtils.radToDeg(cameraRot.z).toFixed(2)
+        }
+      },
+      model: {
+        position: {
+          x: modelPos.x.toFixed(2),
+          y: modelPos.y.toFixed(2),
+          z: modelPos.z.toFixed(2)
+        },
+        rotation: {
+          x: THREE.MathUtils.radToDeg(modelRot.x).toFixed(2),
+          y: THREE.MathUtils.radToDeg(modelRot.y).toFixed(2),
+          z: THREE.MathUtils.radToDeg(modelRot.z).toFixed(2)
+        }
+      }
+    };
+    
+    // Update the display
+    this.positionLogger.innerHTML = `
+      <h3>Position Data</h3>
+      <p>Camera Position: x=${posInfo.camera.position.x}, y=${posInfo.camera.position.y}, z=${posInfo.camera.position.z}</p>
+      <p>Camera Rotation: x=${posInfo.camera.rotation.x}°, y=${posInfo.camera.rotation.y}°, z=${posInfo.camera.rotation.z}°</p>
+      <p>Model Position: x=${posInfo.model.position.x}, y=${posInfo.model.position.y}, z=${posInfo.model.position.z}</p>
+      <p>Model Rotation: x=${posInfo.model.rotation.x}°, y=${posInfo.model.rotation.y}°, z=${posInfo.model.rotation.z}°</p>
+    `;
+    
+    // Also log to console if forced
+    if (force) {
+      console.log('Position Data:', posInfo);
+    }
+  }
   addLoadingIndicator() {
     // Create a simple loading text as a placeholder
     const canvas = document.createElement('canvas');
@@ -102,6 +363,101 @@ class ArcadeCabinet {
     
     // Store reference to remove it later
     this.loadingIndicator = loadingPlane;
+  }
+
+  // Add this method to your ArcadeCabinet class
+  debug(action, value) {
+    switch(action) {
+      case 'rotateX':
+        if (this.cabinet) {
+          this.cabinet.rotation.x = value;
+          console.log(`Cabinet rotated to X: ${value} radians (${value * 180/Math.PI}°)`);
+        }
+        break;
+      case 'rotateY':
+        if (this.cabinet) {
+          this.cabinet.rotation.y = value;
+          console.log(`Cabinet rotated to Y: ${value} radians (${value * 180/Math.PI}°)`);
+        }
+        break;
+      case 'rotateZ':
+        if (this.cabinet) {
+          this.cabinet.rotation.z = value;
+          console.log(`Cabinet rotated to Z: ${value} radians (${value * 180/Math.PI}°)`);
+        }
+        break;
+      case 'cameraX':
+        this.camera.position.x = value;
+        console.log(`Camera X position: ${value}`);
+        break;
+      case 'cameraY':
+        this.camera.position.y = value;
+        console.log(`Camera Y position: ${value}`);
+        break;
+      case 'cameraZ':
+        this.camera.position.z = value;
+        console.log(`Camera Z position: ${value}`);
+        break;
+      case 'log':
+        console.log('Cabinet rotation:', this.cabinet ? {
+          x: this.cabinet.rotation.x,
+          y: this.cabinet.rotation.y,
+          z: this.cabinet.rotation.z
+        } : 'No cabinet loaded');
+        console.log('Camera position:', {
+          x: this.camera.position.x,
+          y: this.camera.position.y,
+          z: this.camera.position.z
+        });
+        break;
+      case 'reset':
+        if (this.cabinet) {
+          this.cabinet.rotation.set(0, 0, 0);
+        }
+        this.camera.position.set(8, 4, 2);
+        this.camera.lookAt(0, 0, 0);
+        console.log('Reset camera and cabinet rotation');
+        break;
+      case 'savePosition':
+        const data = {
+          camera: {
+            position: {
+              x: this.camera.position.x,
+              y: this.camera.position.y,
+              z: this.camera.position.z
+            },
+            rotation: {
+              x: this.camera.rotation.x,
+              y: this.camera.rotation.y,
+              z: this.camera.rotation.z
+            }
+          },
+          model: {
+            position: {
+              x: this.cabinet ? this.cabinet.position.x : null,
+              y: this.cabinet ? this.cabinet.position.y : null,
+              z: this.cabinet ? this.cabinet.position.z : null
+            },
+            rotation: {
+              x: this.cabinet ? this.cabinet.rotation.x : null,
+              y: this.cabinet ? this.cabinet.rotation.y : null,
+              z: this.cabinet ? this.cabinet.rotation.z : null
+            }
+          }
+        };
+        console.log('SAVED POSITION:', data);
+        alert('Position saved to console. Check developer tools console log.');
+        break;
+    }
+    
+    // Make the camera look at the center of the cabinet or origin
+    if (this.cabinet) {
+      const box = new THREE.Box3().setFromObject(this.cabinet);
+      const center = box.getCenter(new THREE.Vector3());
+      this.camera.lookAt(center);
+    } else {
+      this.camera.lookAt(0, 0, 0);
+    }
   }
 
   loadModel() {
@@ -247,33 +603,201 @@ class ArcadeCabinet {
       this.scene.remove(this.loadingIndicator);
     }
     
-    // Scale and position the cabinet model
-    const box = new THREE.Box3().setFromObject(object);
-    const size = box.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const scale = 2 / maxDim;
+    // Scale the model first
+    const initialBox = new THREE.Box3().setFromObject(object);
+    const initialSize = initialBox.getSize(new THREE.Vector3());
+    const maxDim = Math.max(initialSize.x, initialSize.y, initialSize.z);
+    const scale = 2.5 / maxDim;
     
     object.scale.set(scale, scale, scale);
     
-    // Center the model
-    box.setFromObject(object);
+    // Start with default rotation - no fixed rotation initially to allow free rotation
+    // object.rotation.x = Math.PI/2; // Commented out to allow free rotation
+
+    // Recalculate bounding box after scaling
+    const box = new THREE.Box3().setFromObject(object);
+    const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
-    object.position.sub(center.multiplyScalar(scale));
+    
+    // Log the model dimensions for debugging
+    console.log('Initial model dimensions:', {
+      width: size.x,
+      height: size.y,
+      depth: size.z
+    });
+    
+    // Center the model at the origin
+    object.position.x = -center.x;
+    object.position.y = -center.y;
+    object.position.z = -center.z;
+    
+    // Now position it correctly on the "ground"
+    object.position.y += size.y / 2; // Put the bottom at y=0
     
     // Store reference to the cabinet
     this.cabinet = object;
     
+    // Apply arcade colors
+    this.applyArcadeColors(object);
+    
     // Add the cabinet to the scene
     this.scene.add(object);
     
-    // Find interactive elements like screen, joystick, buttons
+    // Set initial camera position for better view
+    this.positionCameraForModel();
+    
+    // Find interactive elements
     this.identifyInteractiveElements(object);
     
-    // Position camera to best view the cabinet
-    this.positionCamera();
+    // Add XARCADE logo
+    this.addXarcadeLogo(object);
+    
+    // Add rotation controls UI
+    this.addRotationControls();
     
     this.modelLoaded = true;
     console.log('Model loaded and positioned successfully');
+  }
+  
+
+  
+  // Position the camera based on the loaded model
+  positionCameraForModel() {
+    if (!this.cabinet) return;
+    
+    // Get the bounding box of the cabinet
+    const box = new THREE.Box3().setFromObject(this.cabinet);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    
+    // Set camera to initially view the model from a good angle
+    const maxDim = Math.max(size.x, size.y, size.z);
+    this.camera.position.set(
+      center.x + maxDim * 2, 
+      center.y + maxDim * 0.5, 
+      center.z + maxDim * 2
+    );
+    
+    this.camera.lookAt(center);
+    
+    // Update orbit controls to center on the model
+    if (this.controls) {
+      this.controls.target.copy(center);
+      this.controls.update();
+    }
+    
+    console.log('Initial camera positioned at:', this.camera.position);
+  }
+
+  // Add new method to change model colors
+  applyArcadeColors(object) {
+    // Define a material with nice arcade blue color
+    const arcadeMaterial = new THREE.MeshPhongMaterial({
+      color: 0x0077cc, // Deep blue
+      specular: 0x111111,
+      shininess: 30,
+      emissive: 0x001133, // Slight emissive glow
+    });
+    
+    // Define button materials with different colors
+    const buttonMaterials = {
+      red: new THREE.MeshPhongMaterial({ 
+        color: 0xff0000, 
+        emissive: 0x330000,
+        shininess: 50 
+      }),
+      blue: new THREE.MeshPhongMaterial({ 
+        color: 0x0000ff, 
+        emissive: 0x000033,
+        shininess: 50 
+      }),
+      yellow: new THREE.MeshPhongMaterial({ 
+        color: 0xffff00, 
+        emissive: 0x333300,
+        shininess: 50 
+      })
+    };
+    
+    // Apply materials based on mesh names or positions
+    object.traverse((child) => {
+      if (child.isMesh) {
+        // By default, apply the arcade blue material
+        child.material = arcadeMaterial.clone();
+        
+        // Use name to identify specific parts for different colors
+        const name = child.name.toLowerCase();
+        
+        if (name.includes('button') || name.includes('btn')) {
+          // Randomly assign button colors
+          const colors = Object.values(buttonMaterials);
+          const randomColor = colors[Math.floor(Math.random() * colors.length)];
+          child.material = randomColor.clone();
+        }
+        else if (name.includes('screen')) {
+          // For screen, use a black material
+          child.material = new THREE.MeshBasicMaterial({ 
+            color: 0x000000,
+            emissive: 0x000000
+          });
+        }
+        
+        // Enable shadows
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+  }
+
+  // Add method to create XARCADE logo on the cabinet
+  addXarcadeLogo(object) {
+    // Create a canvas for the logo texture
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    
+    // Draw gradient background
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+    gradient.addColorStop(0, '#004466');
+    gradient.addColorStop(0.5, '#18cae6');
+    gradient.addColorStop(1, '#004466');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw text
+    ctx.font = 'bold 72px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Outer glow/shadow
+    ctx.fillStyle = '#000033';
+    ctx.fillText('XARCADE', canvas.width/2 + 4, canvas.height/2 + 4);
+    
+    // Main text
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('XARCADE', canvas.width/2, canvas.height/2);
+    
+    // Create texture and material
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true
+    });
+    
+    // Create a plane for the logo
+    const geometry = new THREE.PlaneGeometry(1, 0.25);
+    const logoMesh = new THREE.Mesh(geometry, material);
+    
+    // Position it on top of the cabinet
+    const box = new THREE.Box3().setFromObject(object);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    
+    logoMesh.position.set(center.x, box.max.y + 0.15, center.z);
+    logoMesh.rotation.x = -0.2; // Tilt slightly for better visibility
+    
+    // Add to the scene
+    this.scene.add(logoMesh);
   }
 
   identifyInteractiveElements(object) {
@@ -365,6 +889,8 @@ class ArcadeCabinet {
     }
   }
   
+
+  
   createVirtualScreen() {
     console.log('Creating virtual screen');
     
@@ -419,30 +945,6 @@ class ArcadeCabinet {
     this.gameTexture = new THREE.CanvasTexture(this.gameCanvas);
   }
   
-  positionCamera() {
-    if (!this.cabinet) return;
-    
-    // Get the bounding box of the cabinet
-    const boundingBox = new THREE.Box3().setFromObject(this.cabinet);
-    const center = boundingBox.getCenter(new THREE.Vector3());
-    const size = boundingBox.getSize(new THREE.Vector3());
-    
-    // Position camera to see the whole cabinet
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const fov = this.camera.fov * (Math.PI / 180);
-    const cameraDistance = maxDim / (2 * Math.tan(fov / 2));
-    
-    // Set the camera position
-    this.camera.position.set(center.x, center.y, center.z + cameraDistance * 1.5);
-    this.camera.lookAt(center);
-    
-    // Update the orbit controls target
-    this.controls.target.copy(center);
-    this.controls.update();
-    
-    console.log('Camera positioned at:', this.camera.position);
-  }
-
   onClick(event) {
     // Calculate mouse position in normalized device coordinates
     const rect = this.renderer.domElement.getBoundingClientRect();
@@ -477,6 +979,40 @@ class ArcadeCabinet {
     }
   }
 
+  // New method to update the screen with game information
+  updateGameInfo(lives, score, level) {
+    if (!this.screenMesh) return;
+    
+    // Create a canvas for the game info
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 384;
+    const ctx = canvas.getContext('2d');
+    
+    // Draw background
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw game info
+    ctx.font = '24px "Press Start 2P", monospace';
+    ctx.fillStyle = '#18cae6'; // Cyan color
+    ctx.textAlign = 'left';
+    ctx.fillText(`LIVES: ${lives}`, 20, 40);
+    ctx.fillText(`SCORE: ${score}`, 20, 80);
+    ctx.fillText(`LEVEL: ${level}`, 20, 120);
+    
+    // Create or update texture
+    if (!this.gameTexture) {
+      this.gameTexture = new THREE.CanvasTexture(canvas);
+      this.screenMesh.material.map = this.gameTexture;
+    } else {
+      this.gameTexture.image = canvas;
+      this.gameTexture.needsUpdate = true;
+    }
+    
+    this.screenMesh.material.needsUpdate = true;
+  }
+
   onWindowResize() {
     const width = this.container.clientWidth;
     const height = this.container.clientHeight;
@@ -489,6 +1025,10 @@ class ArcadeCabinet {
   animate() {
     requestAnimationFrame(this.animate.bind(this));
     
+    // Update position logger
+    this.updatePositionLogger();
+    
+    // Update orbit controls
     if (this.controls) {
       this.controls.update();
     }

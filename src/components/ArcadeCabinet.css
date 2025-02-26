@@ -6,11 +6,13 @@
 }
 
 .cabinet-3d-container {
-  border-radius: 8px;
+  /* Remove border and box-shadow */
+  border-radius: 0;
   overflow: hidden;
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+  box-shadow: none;
   position: relative;
   min-height: 400px;
+  background-color: transparent; /* Make background transparent */
 }
 
 .loading-overlay, .error-overlay {
@@ -35,6 +37,27 @@
 .error-overlay p {
   color: #ff3366;
   text-shadow: 0 0 10px #ff3366;
+}
+
+/* Game stats display */
+/* .game-info {
+  display: flex;
+  justify-content: space-around;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.7);
+  border-top: 2px solid #18cae6;
+  margin-bottom: 20px;
+}
+
+.stat {
+  color: #18cae6;
+  font-size: 1rem;
+  text-shadow: 0 0 5px #18cae6;
+}
+
+.value {
+  font-weight: bold;
+  color: #ffffff;
 }
 
 .game-selection-ui {
@@ -78,4 +101,4 @@
 .game-button.active {
   background: #18cae6;
   color: #000;
-}
+} */
