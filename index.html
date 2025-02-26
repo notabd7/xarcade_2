@@ -3,24 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xarcade</title>
+    <title>Xarcade - Retro Gaming</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div class="stars-container">
+        <div id="stars"></div>
+        <div id="stars2"></div>
+        <div id="stars3"></div>
+    </div>
+
     <header>
-        <h1>Xarcade</h1>
-        <a href="leaderboard.html" class="leaderboard">🏆 Leaderboard</a>
+        <div class="logo-container">
+            <h1 class="neon-text">XARCADE</h1>
+            <div class="neon-underline"></div>
+        </div>
+        <a href="leaderboard.html" class="leaderboard-link">
+            <!-- <div class="trophy-icon">🏆</div> -->
+            <span>Leaderboard</span>
+        </a>
     </header>
+
     <main>
         <div class="game-grid">
             <div class="game-card">
-                <h2>Aesteroids</h2>
-                <img src="aesteroids.gif" alt="Aesteroids Gameplay">
-                <a href="aesteroids/index.html" class="play-button">Click to Play</a>
+                <div class="game-card-inner">
+                    <div class="game-title">
+                        <h2>AESTEROIDS</h2>
+                    </div>
+                    <div class="game-preview">
+                        <!-- <img src="aesteroids.gif" alt="Aesteroids Gameplay" onerror="this.src='trophy.png'"> -->
+                    </div>
+                    <div class="game-description">
+                        <p>Navigate through space and destroy asteroids in this classic arcade shooter</p>
+                    </div>
+                    <a href="aesteroids/index.html" class="play-button">PLAY NOW</a>
+                </div>
             </div>
-            <!-- Additional game cards can be added here -->
+
+            <div class="game-card coming-soon">
+                <div class="game-card-inner">
+                    <div class="game-title">
+                        <h2>SPACE INVADERS</h2>
+                    </div>
+                    <div class="game-preview">
+                        <div class="coming-soon-overlay">COMING SOON</div>
+                    </div>
+                    <div class="game-description">
+                        <p>Defend Earth from alien invaders in this upcoming retro classic</p>
+                    </div>
+                    <span class="play-button disabled">COMING SOON</span>
+                </div>
+            </div>
+
+            <div class="game-card coming-soon">
+                <div class="game-card-inner">
+                    <div class="game-title">
+                        <h2>GALAGA</h2>
+                    </div>
+                    <div class="game-preview">
+                        <div class="coming-soon-overlay">COMING SOON</div>
+                    </div>
+                    <div class="game-description">
+                        <p>Pilot your ship and destroy waves of alien formations</p>
+                    </div>
+                    <span class="play-button disabled">COMING SOON</span>
+                </div>
+            </div>
         </div>
     </main>
-    <script src="script.js"></script>
+
+    <footer>
+        <p>&copy; 2025 Xarcade - Retro Gaming Experience</p>
+    </footer>
+
+    <script src="./script.js"></script>
 </body>
 </html>

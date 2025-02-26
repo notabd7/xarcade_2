@@ -2,8 +2,33 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-canvas.width = 800;
-canvas.height = 600;
+// Make canvas fill most of the window while maintaining aspect ratio
+function resizeCanvas() {
+    const maxWidth = window.innerWidth * 0.9;
+    const maxHeight = window.innerHeight * 0.85;
+    
+    // Maintain 4:3 aspect ratio
+    let newWidth = maxWidth;
+    let newHeight = newWidth * 0.75; // 3:4 ratio
+    
+    if (newHeight > maxHeight) {
+        newHeight = maxHeight;
+        newWidth = newHeight * 1.33; // 4:3 ratio
+    }
+    
+    canvas.style.width = newWidth + 'px';
+    canvas.style.height = newHeight + 'px';
+}
+
+// Set actual canvas resolution
+canvas.width = 1200;
+canvas.height = 900;
+
+// Initial resize
+resizeCanvas();
+
+// Listen for window resize events
+window.addEventListener('resize', resizeCanvas);
 
 const audio = {
     theme: new Audio('./sounds/asteroid.wav'),
@@ -19,7 +44,6 @@ const audio = {
 audio.theme.loop = true;
 audio.theme.volume = 0.5;
 
-
 let audioCtx;
 function initAudio() {
     if (!audioCtx) {
@@ -28,9 +52,8 @@ function initAudio() {
         audio.theme.play().catch(e => console.log("Audio playback failed:", e));
     }
 }
+
 // Vector class for physics
-
-
 class Vector {
     constructor(x = 0, y = 0) {
         this.x = x;
@@ -98,7 +121,7 @@ class Ship {
         this.rotation = 0;
         this.thrust = 0.1;
         this.rotationSpeed = 0.05;
-        this.size = 20;
+        this.size = 25; // Increased ship size for better visibility
         this.isThrusting = false;
         this.bullets = [];
         this.shootCooldown = 0;
@@ -116,6 +139,15 @@ class Ship {
             audio.thrust.pause();
             audio.thrust.currentTime = 0;
             this.thrustSound = false;
+        }
+
+        // Apply thrust if the ship is thrusting
+        if (this.isThrusting) {
+            const thrustVector = new Vector(
+                Math.cos(this.rotation) * this.thrust,
+                Math.sin(this.rotation) * this.thrust
+            );
+            this.velocity.add(thrustVector);
         }
 
         // Add drag to prevent infinite acceleration
@@ -154,19 +186,49 @@ class Ship {
         ctx.save();
         ctx.translate(this.position.x, this.position.y);
         ctx.rotate(this.rotation);
+
+        // Draw improved ship shape
         ctx.beginPath();
         ctx.moveTo(this.size, 0);
         ctx.lineTo(-this.size / 2, this.size / 2);
+        ctx.lineTo(-this.size / 3, 0);  // Added indent
         ctx.lineTo(-this.size / 2, -this.size / 2);
         ctx.closePath();
         ctx.strokeStyle = '#0f0';
+        ctx.lineWidth = 2;
         ctx.stroke();
 
+        // Draw improved thruster flame if thrusting
         if (this.isThrusting) {
             ctx.beginPath();
-            ctx.moveTo(-this.size / 2, 0);
-            ctx.lineTo(-this.size, 0);
-            ctx.stroke();
+            
+            // Flicker effect for flame
+            const flickerOffset = Math.random() * 0.3 + 0.7;
+            
+            // Main flame
+            ctx.moveTo(-this.size / 3, 0);
+            ctx.lineTo(-this.size * 1.2 * flickerOffset, 0);
+            
+            // Flame width varies
+            const flameWidth = this.size / 4 * flickerOffset;
+            
+            // Draw flame edges
+            ctx.lineTo(-this.size * 0.8, flameWidth);
+            ctx.lineTo(-this.size / 3, 0);
+            ctx.lineTo(-this.size * 0.8, -flameWidth);
+            ctx.lineTo(-this.size * 1.2 * flickerOffset, 0);
+            
+            // Flame gradient
+            const gradient = ctx.createLinearGradient(
+                -this.size / 3, 0, 
+                -this.size * 1.2, 0
+            );
+            gradient.addColorStop(0, '#ff6600');
+            gradient.addColorStop(0.5, '#ffcc00');
+            gradient.addColorStop(1, '#ff9900');
+            
+            ctx.fillStyle = gradient;
+            ctx.fill();
         }
 
         ctx.restore();
@@ -206,7 +268,7 @@ class Bullet {
     constructor(position, velocity) {
         this.position = position.clone();
         this.velocity = velocity.clone();
-        this.size = 2;
+        this.size = 3; // Increased bullet size
         this.lifespan = 60;
     }
 
@@ -231,10 +293,13 @@ class Bullet {
 class Asteroid {
     constructor(size = 3, position = null) {
         this.size = size; // 3: large, 2: medium, 1: small
-        this.radius = size * 10;
+        this.radius = size * 15; // Increased asteroid size
         this.position = position ? position.clone() : this.randomEdgePosition();
-        this.velocity = new Vector(Math.random() * 2 - 1, Math.random() * 2 - 1);
+        
+        // Increase asteroid speed for faster gameplay
+        this.velocity = new Vector(Math.random() * 3 - 1.5, Math.random() * 3 - 1.5);
         this.velocity.multiply(1 + (3 - size) * 0.5); // Smaller asteroids move faster
+        
         this.rotation = 0;
         this.rotationSpeed = Math.random() * 0.05 - 0.025;
         this.points = this.generatePoints();
@@ -252,10 +317,13 @@ class Asteroid {
 
     generatePoints() {
         const points = [];
-        const numPoints = 8 + this.size * 2;
+        // More points for better detail
+        const numPoints = 10 + this.size * 2;
         for (let i = 0; i < numPoints; i++) {
             const angle = (i / numPoints) * Math.PI * 2;
-            const radius = this.radius + (Math.random() - 0.5) * this.radius / 2;
+            // More variation in asteroid shapes
+            const variation = Math.random() * 0.6 + 0.7; // 0.7 to 1.3
+            const radius = this.radius * variation;
             points.push({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius });
         }
         return points;
@@ -278,6 +346,7 @@ class Asteroid {
         this.points.forEach((point, i) => i === 0 ? ctx.moveTo(point.x, point.y) : ctx.lineTo(point.x, point.y));
         ctx.closePath();
         ctx.strokeStyle = '#0f0';
+        ctx.lineWidth = 2;
         ctx.stroke();
         ctx.restore();
     }
@@ -290,6 +359,7 @@ let particles = [];
 let score = 0;
 let gameOver = false;
 let level = 1;
+let gameStarted = false;
 
 function playSound(sound) {
     if (!audioCtx) return; // Don't play if audio isn't initialized
@@ -299,7 +369,8 @@ function playSound(sound) {
     }
     sound.play().catch(e => console.log("Sound playback failed:", e));
 }
-function spawnAsteroids(count = 5) {
+
+function spawnAsteroids(count = 7) { // Increased default asteroid count
     for (let i = 0; i < count; i++) {
         asteroids.push(new Asteroid());
     }
@@ -310,45 +381,66 @@ function circlesCollide(pos1, radius1, pos2, radius2) {
     const dy = pos1.y - pos2.y;
     return Math.sqrt(dx * dx + dy * dy) < radius1 + radius2;
 }
-let x= false
+
+function startGame() {
+    if (!gameStarted && !gameOver) {
+        gameStarted = true;
+        initAudio();
+    }
+}
+
+function returnToHome() {
+    window.location.href = "../index.html";
+}
 
 function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (!audioCtx) {
-        // Show "Click to Start" message
-        ctx.font = '30px Courier New';
+    // Not started state
+    if (!gameStarted) {
+        ctx.font = '40px Courier New';
         ctx.fillStyle = '#0f0';
         ctx.textAlign = 'center';
-        ctx.fillText('Click to Start', canvas.width / 2, canvas.height / 2);
+        ctx.fillText('AESTEROIDS', canvas.width / 2, canvas.height / 2 - 80);
+        
+        ctx.font = '30px Courier New';
+        ctx.fillText('Click or Press Any Key to Start', canvas.width / 2, canvas.height / 2);
+        
+        ctx.font = '20px Courier New';
+        ctx.fillText('Controls: Arrow Keys or WASD to move, SPACE to shoot', canvas.width / 2, canvas.height / 2 + 60);
+        ctx.fillText('ESC to return to home page', canvas.width / 2, canvas.height / 2 + 100);
+        
         requestAnimationFrame(gameLoop);
         return;
     }
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (gameOver) {
-
         audio.theme.pause();
         audio.theme.currentTime = 0;
         playSound(audio.gameOver);
 
-        ctx.font = '40px Courier New';
+        ctx.font = '50px Courier New';
         ctx.fillStyle = '#0f0';
         ctx.textAlign = 'center';
-        ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 40);
-        ctx.font = '20px Courier New';
+        ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 60);
+        
+        ctx.font = '30px Courier New';
         ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2);
-        ctx.fillText('Press Space to Restart', canvas.width / 2, canvas.height / 2 + 40);
+        ctx.fillText('Press Space to Restart', canvas.width / 2, canvas.height / 2 + 60);
+        ctx.fillText('ESC to Return to Home', canvas.width / 2, canvas.height / 2 + 110);
+        
         ctx.textAlign = 'left';
         
         if (keys[' ']) {
             ship = new Ship();
             asteroids = [];
             particles = [];
-            spawnAsteroids(4 + level);
+            spawnAsteroids(6 + level);
             score = 0;
             level = 1;
             gameOver = false;
         }
+        
         requestAnimationFrame(gameLoop);
         return;
     }
@@ -358,6 +450,11 @@ function gameLoop() {
     if (keys['d'] || keys['arrowright']) ship.rotateRight();
     if (keys['w'] || keys['arrowup']) ship.startThrust();
     else ship.stopThrust();
+    
+    // Check for ESC key to return to home
+    if (keys['escape']) {
+        returnToHome();
+    }
 
     // Update game objects
     ship.update();
@@ -394,11 +491,11 @@ function gameLoop() {
                     }
                 }
                 
-                // Create particles
-                for (let i = 0; i < 10; i++) {
-                    const vel = new Vector(Math.random() * 2 - 1, Math.random() * 2 - 1);
+                // Create more particles for better explosion effect
+                for (let i = 0; i < 15; i++) {
+                    const vel = new Vector(Math.random() * 3 - 1.5, Math.random() * 3 - 1.5);
                     vel.multiply(2);
-                    particles.push(new Particle(asteroid.position, vel, 2, '#0f0', 30));
+                    particles.push(new Particle(asteroid.position, vel, 2, '#0f0', 40));
                 }
                 
                 // Remove asteroid and update score
@@ -408,10 +505,15 @@ function gameLoop() {
         });
     });
 
-    // Check for level completion
-    if (asteroids.length === 0) {
+    // Add spontaneous asteroids to keep the game from getting empty
+    if (asteroids.length < 3 + level) {
+        asteroids.push(new Asteroid());
+    }
+
+    // Check for level completion - now requires fewer asteroids
+    if (asteroids.length <= 2) {
         level++;
-        spawnAsteroids(4 + level);
+        spawnAsteroids(6 + level); // Increased asteroid count per level
     }
 
     // Draw everything
@@ -419,22 +521,34 @@ function gameLoop() {
     asteroids.forEach(asteroid => asteroid.draw());
     particles.forEach(particle => particle.draw());
 
-    // Draw HUD
-    ctx.font = '20px Courier New';
+    // Draw HUD with better positioning
+    const padding = 20; // Add padding
+    ctx.font = '25px Courier New';
     ctx.fillStyle = '#0f0';
-    ctx.fillText(`Score: ${score}`, 10, 30);
-    ctx.fillText(`Lives: ${ship.lives}`, 10, 60);
-    ctx.fillText(`Level: ${level}`, 10, 90);
+    ctx.textAlign = 'left';
+    ctx.fillText(`Score: ${score}`, padding, padding + 25);
+    ctx.fillText(`Lives: ${ship.lives}`, padding, padding + 60);
+    ctx.fillText(`Level: ${level}`, padding, padding + 95);
+
+    // Draw ESC hint
+    ctx.textAlign = 'right';
+    ctx.font = '16px Courier New';
+    ctx.fillText('ESC to return home', canvas.width - padding, padding + 25);
 
     requestAnimationFrame(gameLoop);
 }
 
 // Input handling
 const keys = {};
-window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
+window.addEventListener('keydown', e => { 
+    keys[e.key.toLowerCase()] = true; 
+    if (!gameStarted) startGame();
+});
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
-// Add click handler to initialize audio
-window.addEventListener('click', initAudio);
+
+// Add click handler to initialize audio and start game
+window.addEventListener('click', startGame);
+
 // Start the game
-spawnAsteroids();
+spawnAsteroids(7); // Start with more asteroids
 gameLoop();
