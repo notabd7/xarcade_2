@@ -10,7 +10,7 @@ body {
 }
 
 canvas {
-    border: 2px solid #0f0;
-    box-shadow: 0 0 10px #0f0;
+    border: 2px solid #2F8CA3;
+    box-shadow: 0 0 10px #2F8CA3;
     /* Canvas dimensions controlled by JavaScript */
 }

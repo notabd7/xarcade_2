@@ -1,6 +1,6 @@
 /* Base styling */
 :root {
-    --neon-green: #0f0;
+    --neon-green: #18cae6;
     --neon-blue: #0ff;
     --neon-purple: #f0f;
     --dark-bg: #000;
@@ -26,7 +26,7 @@ body {
 }
 
 /* Stars background animation */
-/* .stars-container {
+.stars-container {
     position: fixed;
     top: 0;
     left: 0;
@@ -59,7 +59,7 @@ body {
 #stars3 {
     background-size: 350px 350px, 250px 250px, 150px 150px;
     animation-duration: 100s;
-} */
+}
 
 @keyframes starMove {
     0% {
