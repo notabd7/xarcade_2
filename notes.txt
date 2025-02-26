@@ -7,13 +7,35 @@ tron game: ----
 
 
 12:38 am 2/26
+make front end concept #done 6:29am lol
+customize and populate
+add full screen mode
+play endersgame
+
 make endersgame better 
 finalize theme songs
 finalize main theme song
-clean up front end
+clean up front end 
 add backend, server and x api
 implement simple leaderboard
 prod
 launch 
 repeat
 lfg
+its 7:23 am
+going to sleep
+todos:
+bring up screen
+customize console look
+show games in a console type of way (game cards) two in a row
+reduce to arrow keys and enter to select
+test enders gam working
+polish it up
+add full screen mode
+transitions smoothly INTO the console (sucked in animation)
+add theme song for the arcade
+add volume button (M to mute)
+add leaderboard
+xapi
+load player scores
+ship to prod 

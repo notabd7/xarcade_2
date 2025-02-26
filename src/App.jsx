@@ -1,5 +1,5 @@
 import React from 'react';
-import ArcadeCabinetComponent from './components/ArcadeCabinetComponent.jsx'; // Note: using your existing filename with 's'
+import ArcadeCabinetComponent from './components/ArcadeCabinetComponent.jsx';
 
 function App() {
   return (
@@ -11,7 +11,7 @@ function App() {
         <ArcadeCabinetComponent />
       </main>
       <footer>
-        <p>&copy; 2025 Xarcade - Retro Gaming Experience</p>
+        <p className="copyright">&copy; 2025 notabd7 x sonnet</p>
       </footer>
     </div>
   );
