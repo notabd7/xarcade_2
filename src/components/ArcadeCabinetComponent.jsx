@@ -1,81 +1,49 @@
-import React, { useEffect, useRef, useState } from 'react';
-import ArcadeCabinet from '../three/ArcadeCabinet';
-import './ArcadeCabinet.css';
+import React, { useState, useEffect } from 'react';
 
-const ArcadeCabinetComponent = () => {
-  const containerRef = useRef(null);
-  const arcadeCabinetRef = useRef(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const ArcadeScreen = () => {
+  const [blinking, setBlinking] = useState(true);
 
+  // Blink the "INSERT COIN" text
   useEffect(() => {
-    console.log('ArcadeCabinetComponent mounted');
-    console.log('Container ref:', containerRef.current);
-    
-    // Initialize the 3D cabinet
-    if (containerRef.current && !arcadeCabinetRef.current) {
-      try {
-        console.log('Creating new ArcadeCabinet instance');
-        arcadeCabinetRef.current = new ArcadeCabinet(containerRef.current);
-        setLoading(false);
-        
-        // Display welcome screen after a short delay to ensure model is loaded
-        setTimeout(() => {
-          if (arcadeCabinetRef.current) {
-            arcadeCabinetRef.current.displayWelcomeScreen();
-          }
-        }, 2000);
-      } catch (err) {
-        console.error('Error initializing ArcadeCabinet:', err);
-        setError(`Failed to initialize 3D scene: ${err.message}`);
-        setLoading(false);
-      }
-    }
+    const blinkInterval = setInterval(() => {
+      setBlinking((prev) => !prev);
+    }, 800);
 
-    // Clean up function
-    return () => {
-      console.log('ArcadeCabinetComponent unmounting');
-      if (arcadeCabinetRef.current) {
-        // Clean up event listeners
-        document.removeEventListener('keydown', arcadeCabinetRef.current.handleKeyPress);
-        document.removeEventListener('wheel', arcadeCabinetRef.current.handleScroll);
-        
-        // Clean up container
-        if (containerRef.current) {
-          containerRef.current.innerHTML = '';
-        }
-        arcadeCabinetRef.current = null;
-      }
-    };
+    return () => clearInterval(blinkInterval);
   }, []);
 
-  // Display loading state while 3D model initializes
   return (
-    <div className="arcade-cabinet-container">
-      <div 
-        ref={containerRef} 
-        className="cabinet-3d-container" 
-        style={{ width: '100%', height: '80vh' }}
-      >
-        {loading && (
-          <div className="loading-overlay">
-            <p>Loading 3D Cabinet...</p>
+    <div className="flex items-center justify-center w-full h-screen bg-black">
+      <div className="relative aspect-video max-w-full max-h-full bg-black p-2 border-2 border-black">
+        {/* Cyan outer border */}
+        <div className="absolute inset-0 border-4 border-cyan-400 opacity-70"></div>
+        {/* Purple inner border */}
+        <div className="absolute inset-0 m-1 border-2 border-fuchsia-500 opacity-60"></div>
+        {/* Text content */}
+        <div className="flex flex-col items-center justify-center h-full">
+          <div
+            className="mb-8 text-4xl font-bold text-fuchsia-500 tracking-wider"
+            style={{
+              textShadow: '0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px #ff00ff',
+            }}
+          >
+            XARCADE
           </div>
-        )}
-        
-        {error && (
-          <div className="error-overlay">
-            <p>Error: {error}</p>
+          <div
+            className={`text-lg font-bold text-cyan-400 ${
+              blinking ? 'opacity-100' : 'opacity-0'
+            }`}
+            style={{
+              textShadow: '0 0 5px #00ffff, 0 0 10px #00ffff',
+              transition: 'opacity 0.2s ease-in-out',
+            }}
+          >
+            INSERT COIN
           </div>
-        )}
-      </div>
-      
-      <div className="arcade-instructions">
-        <p>Use <span className="key">↑</span> <span className="key">↓</span> arrow keys or scroll to select games</p>
-        <p>Press <span className="key">Enter</span> to play Enders Game</p>
+        </div>
       </div>
     </div>
   );
 };
 
-export default ArcadeCabinetComponent;
+export default ArcadeScreen;

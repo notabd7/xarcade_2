@@ -3,16 +3,14 @@
   flex-direction: column;
   max-width: 1200px;
   margin: 0 auto;
-  position:relative;
 }
 
 .cabinet-3d-container {
-  border-radius: 0;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: none;
   position: relative;
   min-height: 400px;
-  background-color: transparent;
+  background-color: #000;
 }
 
 .loading-overlay, .error-overlay {
@@ -32,33 +30,10 @@
   color: #ff00ff;
   font-size: 1.5rem;
   text-shadow: 0 0 10px #ff00ff;
+  transform: translateY(100%); /* Shifts the text downward */
 }
 
 .error-overlay p {
   color: #ff3366;
   text-shadow: 0 0 10px #ff3366;
-}
-
-.arcade-instructions {
-  position: absolute;
-  right: 1200px;
-  top: 50%;
-  transform: translateY(-50%);
-  text-align: left;
-  padding: 1px;
-  color: #ff00ff;
-  font-size: 0.8rem;
-  background-color: rgba(0, 0, 0, 0.5); /* Optional semi-transparent background */
-  border-radius: 8px;
-  max-width: 250px; /* Adjust as needed */
-  z-index: 5; /* Ensure it's above the 3D container but below any overlays */
-}
-.key {
-  display: inline-block;
-  padding: 0.2rem 0.5rem;
-  background-color: #222;
-  border: 1px solid #ff00ff;
-  border-radius: 4px;
-  box-shadow: 0 0 5px #ff00ff;
-  margin: 0 0.2rem;
 }

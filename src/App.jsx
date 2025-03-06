@@ -4,14 +4,14 @@ import ArcadeCabinetComponent from './components/ArcadeCabinetComponent.jsx';
 function App() {
   return (
     <div className="xarcade-app">
-      <header>
+      {/* <header>
         <h1 className="neon-text">XARCADE</h1>
-      </header>
+      </header> */}
       <main>
         <ArcadeCabinetComponent />
       </main>
       <footer>
-        <p className="copyright">&copy; 2025 notabd7 x sonnet</p>
+        <p>&copy; 2025 Xarcade - Retro Gaming Experience</p>
       </footer>
     </div>
   );
