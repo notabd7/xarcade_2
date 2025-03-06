@@ -1,17 +1,15 @@
 import React from 'react';
-import ArcadeCabinetComponent from './components/ArcadeCabinetComponent.jsx';
+import ArcadeScreen from './components/ArcadeScreen.jsx';
 
 function App() {
   return (
-    <div className="xarcade-app">
-      {/* <header>
-        <h1 className="neon-text">XARCADE</h1>
-      </header> */}
-      <main>
-        <ArcadeCabinetComponent />
+    <div className="xarcade-app h-screen flex flex-col overflow-hidden bg-black">
+      <main className="flex-1">
+        <ArcadeScreen />
       </main>
-      <footer>
-        <p>&copy; 2025 Xarcade - Retro Gaming Experience</p>
+      <footer className="text-center py-1 text-xs text-fuchsia-500">
+        <p>&copy; 2025 Xarcade - a notabd7 x sonnet production</p>
+
       </footer>
     </div>
   );

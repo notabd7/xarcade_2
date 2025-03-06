@@ -1,3 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 :root {
     --neon-green: #18cae6;
     --neon-blue: #0ff;
@@ -14,6 +17,19 @@
     line-height: 1.6;
     overflow-x: hidden;
   }
+  /* Add this to your index.css */
+.canvas-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Ensure Three.js canvas has appropriate size */
+canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
   
   #root {
     width: 100%;

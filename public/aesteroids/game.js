@@ -1,35 +1,65 @@
 // Canvas setup
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+const canvas = window.gameCanvas || document.getElementById('gameCanvas');
+const ctx = window.gameContext || (canvas ? canvas.getContext('2d') : null);
 
 // Make canvas fill most of the window while maintaining aspect ratio
-function resizeCanvas() {
-    const maxWidth = window.innerWidth * 0.9;
-    const maxHeight = window.innerHeight * 0.85;
-    
-    // Maintain 4:3 aspect ratio
-    let newWidth = maxWidth;
-    let newHeight = newWidth * 0.75; // 3:4 ratio
-    
-    if (newHeight > maxHeight) {
-        newHeight = maxHeight;
-        newWidth = newHeight * 1.33; // 4:3 ratio
+if (!canvas || !ctx) {
+    console.error("Cannot find game canvas or context!");
+  } else {
+    // Make canvas fill most of the window while maintaining aspect ratio
+    function resizeCanvas() {
+        const maxWidth = window.innerWidth * 0.9;
+        const maxHeight = window.innerHeight * 0.85;
+        
+        // Maintain 4:3 aspect ratio
+        let newWidth = maxWidth;
+        let newHeight = newWidth * 0.75; // 3:4 ratio
+        
+        if (newHeight > maxHeight) {
+            newHeight = maxHeight;
+            newWidth = newHeight * 1.33; // 4:3 ratio
+        }
+        
+        canvas.style.width = newWidth + 'px';
+        canvas.style.height = newHeight + 'px';
     }
-    
-    canvas.style.width = newWidth + 'px';
-    canvas.style.height = newHeight + 'px';
-}
-
-// Set actual canvas resolution
-canvas.width = 1200;
-canvas.height = 900;
-
-// Initial resize
-resizeCanvas();
-
-// Listen for window resize events
-window.addEventListener('resize', resizeCanvas);
-
+  
+    // Set actual canvas resolution
+    canvas.width = 1200;
+    canvas.height = 900;
+  
+    // Initial resize
+    resizeCanvas();
+  
+    // Listen for window resize events
+    window.addEventListener('resize', resizeCanvas);
+  
+    // Add a global cleanup function that the React component can call
+    window.cleanupAsteroidsGame = function() {
+      // Stop game loop if it's running
+      if (typeof cancelAnimationFrame === 'function' && window.gameLoopId) {
+        cancelAnimationFrame(window.gameLoopId);
+        window.gameLoopId = null;
+      }
+      
+      // Stop audio
+      Object.values(audio).forEach(sound => {
+        sound.pause();
+        sound.currentTime = 0;
+      });
+      
+      // Remove event listeners
+      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      if (canvas) {
+        canvas.removeEventListener('click', startGame);
+      }
+      
+      console.log("Game resources cleaned up");
+    };
+  
+  }
 const audio = {
     theme: new Audio('./sounds/asteroid.wav'),
     gameOver: new Audio('./sounds/asteroid.wav'), // Placeholder for game over music
@@ -616,6 +646,7 @@ let gameOver = false;
 let level = 1;
 let gameStarted = false;
 let enemySpawnTimer = 0;
+let keys = {};
 
 function playSound(sound) {
     if (!audioCtx) return; // Don't play if audio isn't initialized
@@ -657,7 +688,10 @@ function startGame() {
 }
 
 function returnToHome() {
-    window.location.href = "../index.html";
+    // Instead of redirecting to another page, clean up and let React handle navigation
+    if (window.cleanupAsteroidsGame) {
+        window.cleanupAsteroidsGame();
+    }
 }
 
 function createExplosion(position, size, count) {
@@ -700,7 +734,7 @@ function gameLoop() {
         ctx.fillText('Controls: Arrow Keys or WASD to move, SPACE to shoot', canvas.width / 2, canvas.height / 2 + 60);
         ctx.fillText('ESC to return to home page', canvas.width / 2, canvas.height / 2 + 100);
         
-        requestAnimationFrame(gameLoop);
+        window.gameLoopId = requestAnimationFrame(gameLoop);
         return;
     }
 
@@ -732,7 +766,7 @@ function gameLoop() {
             gameOver = false;
         }
         
-        requestAnimationFrame(gameLoop);
+        window.gameLoopId = requestAnimationFrame(gameLoop);
         return;
     }
 
@@ -910,20 +944,25 @@ function gameLoop() {
     ctx.font = '16px Courier New';
     ctx.fillText('ESC to return home', canvas.width - padding, padding + 25);
 
-    requestAnimationFrame(gameLoop);
+    window.gameLoopId = requestAnimationFrame(gameLoop);
 }
 
 // Input handling
-const keys = {};
-window.addEventListener('keydown', e => { 
-    keys[e.key.toLowerCase()] = true; 
+function handleKeyDown(e) {
+    keys[e.key.toLowerCase()] = true;
     if (!gameStarted) startGame();
-});
-window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
-
+  }
+  
+  function handleKeyUp(e) {
+    keys[e.key.toLowerCase()] = false;
+  }
 // Add click handler to initialize audio and start game
-window.addEventListener('click', startGame);
-
+window.addEventListener('keydown', handleKeyDown);
+window.addEventListener('keyup', handleKeyUp);
+if (canvas) {
+  canvas.addEventListener('click', startGame);
+}
 // Start the game
 spawnAsteroids(10); // Start with more asteroids
+window.gameLoopId = requestAnimationFrame(gameLoop);
 gameLoop();
