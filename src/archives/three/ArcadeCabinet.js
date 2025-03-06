@@ -29,10 +29,12 @@ class ArcadeCabinet {
     this.init();
   }
 
+
   init() {
     console.log('Initializing ArcadeCabinet');
     // Create scene
     this.scene = new THREE.Scene();
+    this.selectedGameIndex = 0;
     this.scene.background = new THREE.Color(0x000000);
 
     // Add lights with more dramatic lighting
@@ -43,7 +45,10 @@ class ArcadeCabinet {
     const frontLight = new THREE.DirectionalLight(0x18cae6, 1.0); // Cyan-blue light from front
     frontLight.position.set(0, 0, 5);
     this.scene.add(frontLight);
-
+    document.addEventListener('keydown', this.handleKeyPress.bind(this));
+  
+  // Add scroll event for game selection
+    document.addEventListener('wheel', this.handleScroll.bind(this));
     const topLight = new THREE.DirectionalLight(0xffffff, 0.8);
     topLight.position.set(0, 5, 0);
     this.scene.add(topLight);
@@ -91,6 +96,36 @@ class ArcadeCabinet {
     this.animate();
     
     console.log('ArcadeCabinet initialization complete');
+  }
+  handleKeyPress(event) {
+    switch(event.key) {
+      case 'ArrowUp':
+        this.selectedGameIndex = Math.max(0, this.selectedGameIndex - 1);
+        this.createGameMenu();
+        break;
+      case 'ArrowDown':
+        this.selectedGameIndex = Math.min(4, this.selectedGameIndex + 1);
+        this.createGameMenu();
+        break;
+      case 'Enter':
+        const selectedGame = this.createGameMenu();
+        if (selectedGame.available) {
+          this.loadGame(selectedGame.id);
+        }
+        break;
+    }
+  }
+  
+  // Add method to handle scroll
+  handleScroll(event) {
+    if (event.deltaY > 0) {
+      // Scroll down
+      this.selectedGameIndex = Math.min(4, this.selectedGameIndex + 1);
+    } else {
+      // Scroll up
+      this.selectedGameIndex = Math.max(0, this.selectedGameIndex - 1);
+    }
+    this.createGameMenu();
   }
 
   addLoadingIndicator() {
@@ -246,6 +281,7 @@ class ArcadeCabinet {
     this.scene.add(cabinetGroup);
     this.cabinet = cabinetGroup;
     
+    
     // Create the game texture
     this.createGameTexture();
     this.screenMesh.material.map = this.gameTexture;
@@ -256,6 +292,9 @@ class ArcadeCabinet {
     
     this.modelLoaded = true;
     console.log('Fallback cabinet created successfully');
+    this.modelLoaded = true;
+    console.log('Fallback cabinet created successfully');
+    this.displayWelcomeScreen();
   }
 
   handleLoadedModel(object) {
@@ -309,12 +348,96 @@ class ArcadeCabinet {
     // Find interactive elements
     this.identifyInteractiveElements(object);
     
-    // Add XARCADE logo
-    this.addXarcadeLogo(object);
+    this.modelLoaded = true;
+    console.log('Model loaded and positioned successfully');
+
+    this.displayWelcomeScreen();
+  
+    
     
     this.modelLoaded = true;
     console.log('Model loaded and positioned successfully');
   }
+
+  // Add this new function to your ArcadeCabinet class in src/three/ArcadeCabinet.js
+
+
+
+displayWelcomeScreen() {
+  console.log('Displaying welcome screen');
+  
+  // Create a canvas for the welcome screen
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 384;
+  const ctx = canvas.getContext('2d');
+  
+  // Fill background with black
+  ctx.fillStyle = 'black';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Add gradient border
+  const borderWidth = 10;
+  ctx.strokeStyle = '#ff00ff'; // Match the magenta/pink color from your cabinet
+  ctx.lineWidth = borderWidth;
+  ctx.strokeRect(borderWidth/2, borderWidth/2, 
+                canvas.width - borderWidth, canvas.height - borderWidth);
+  
+  // Add welcome text
+  ctx.font = 'bold 40px "Press Start 2P", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  
+  // Create neon glow effect
+  ctx.shadowColor = '#ff00ff';
+  ctx.shadowBlur = 15;
+  ctx.fillStyle = '#ff00ff';
+  
+  // Draw main text
+  ctx.fillText('WELCOME TO', canvas.width/2, canvas.height/2 - 50);
+  ctx.fillText('XARCADE', canvas.width/2, canvas.height/2 + 30);
+  
+  // Add instructions text
+  ctx.font = '14px "Press Start 2P", monospace';
+  ctx.shadowBlur = 5;
+  ctx.fillStyle = '#18cae6'; // Cyan for instructions
+  ctx.fillText('Press START to begin', canvas.width/2, canvas.height/2 + 100);
+  
+  // Create or update texture
+  if (!this.gameTexture) {
+    this.gameTexture = new THREE.CanvasTexture(canvas);
+    
+    // Make sure the screen mesh has a material that can use the texture
+    if (this.screenMesh) {
+      if (!this.screenMesh.material) {
+        this.screenMesh.material = new THREE.MeshBasicMaterial({ map: this.gameTexture });
+      } else if (Array.isArray(this.screenMesh.material)) {
+        // If it's a multi-material
+        this.screenMesh.material[0].map = this.gameTexture;
+        this.screenMesh.material[0].needsUpdate = true;
+      } else {
+        this.screenMesh.material.map = this.gameTexture;
+        this.screenMesh.material.needsUpdate = true;
+      }
+    } else {
+      console.error('No screen mesh found to apply texture');
+    }
+  } else {
+    // Update existing texture
+    this.gameTexture.image = canvas;
+    this.gameTexture.needsUpdate = true;
+    
+    if (this.screenMesh && this.screenMesh.material) {
+      if (Array.isArray(this.screenMesh.material)) {
+        this.screenMesh.material[0].needsUpdate = true;
+      } else {
+        this.screenMesh.material.needsUpdate = true;
+      }
+    }
+  }
+  
+  console.log('Welcome screen applied:', this.gameTexture, this.screenMesh);
+}
   
   // New method to apply the fixed position and rotation
 // Replace the applyFixedPositionAndRotation method with this centered version
@@ -330,71 +453,97 @@ applyFixedPositionAndRotation(model) {
       -50.00 * degToRad
     );
     
-    // First, calculate the model's bounding box after rotation is applied
+    // Calculate the model's bounding box after rotation is applied
     const box = new THREE.Box3().setFromObject(model);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
     
-    // Now position the model in the complete center of the viewport
-    // Lower the y-position to center it vertically
+    // Position the model - shift left to center under the XARCADE logo
     model.position.set(
-      0,               // Center horizontally at x=0
-      -1.75,            // Lower y-position to center vertically
-      0                // Center depth-wise at z=0
+      -0.16,           // Shift left (-x direction) to center under logo
+      -1.75,          // Keep vertical position
+      0               // Keep depth position
     );
     
-    console.log('Applied centered position and rotation to model');
+    console.log('Applied adjusted position and rotation to model');
   }
+  
   // Add new method to change model colors
   applyArcadeColors(object) {
-    // Define a material with nice arcade blue color
+    // Define materials with your requested colors
     const arcadeMaterial = new THREE.MeshPhongMaterial({
-      color: 0x0077cc, // Deep blue
-      specular: 0x111111,
+      color: 0x800080, // Purple
+      specular: 0x222222,
       shininess: 30,
-      emissive: 0x001133, // Slight emissive glow
+      emissive: 0x200020, // Slight emissive purple glow
+    });
+    
+    // Define joystick materials
+    const joystickBaseMaterial = new THREE.MeshPhongMaterial({ 
+      color: 0x444444, // Grey for base
+      shininess: 40 
+    });
+    
+    const joystickStickMaterial = new THREE.MeshPhongMaterial({ 
+      color: 0x222222, // Black for stick
+      shininess: 30 
+    });
+    
+    const joystickTopMaterial = new THREE.MeshPhongMaterial({ 
+      color: 0xff0000, // Red for top
+      emissive: 0x330000,
+      shininess: 60 
     });
     
     // Define button materials with different colors
-    const buttonMaterials = {
-      red: new THREE.MeshPhongMaterial({ 
-        color: 0xff0000, 
+    const buttonMaterials = [
+      new THREE.MeshPhongMaterial({ 
+        color: 0xff0000, // Red
         emissive: 0x330000,
         shininess: 50 
       }),
-      blue: new THREE.MeshPhongMaterial({ 
-        color: 0x0000ff, 
-        emissive: 0x000033,
-        shininess: 50 
-      }),
-      yellow: new THREE.MeshPhongMaterial({ 
-        color: 0xffff00, 
+      new THREE.MeshPhongMaterial({ 
+        color: 0xffff00, // Yellow
         emissive: 0x333300,
         shininess: 50 
+      }),
+      new THREE.MeshPhongMaterial({ 
+        color: 0x0000ff, // Blue
+        emissive: 0x000033,
+        shininess: 50 
       })
-    };
+    ];
     
     // Apply materials based on mesh names or positions
     object.traverse((child) => {
       if (child.isMesh) {
-        // By default, apply the arcade blue material
+        // By default, apply the arcade purple material
         child.material = arcadeMaterial.clone();
         
         // Use name to identify specific parts for different colors
-        const name = child.name.toLowerCase();
+        const name = (child.name || '').toLowerCase();
         
-        if (name.includes('button') || name.includes('btn')) {
-          // Randomly assign button colors
-          const colors = Object.values(buttonMaterials);
-          const randomColor = colors[Math.floor(Math.random() * colors.length)];
-          child.material = randomColor.clone();
+        if (name.includes('joystick')) {
+          if (name.includes('base')) {
+            child.material = joystickBaseMaterial.clone();
+          } else if (name.includes('top')) {
+            child.material = joystickTopMaterial.clone();
+          } else {
+            child.material = joystickStickMaterial.clone();
+          }
+        }
+        else if (name.includes('button') || name.includes('btn')) {
+          // Assign button colors sequentially
+          const buttonIndex = this.interactiveElements.buttons.length % buttonMaterials.length;
+          child.material = buttonMaterials[buttonIndex].clone();
+          this.interactiveElements.buttons.push(child);
         }
         else if (name.includes('screen')) {
           // For screen, use a black material
           child.material = new THREE.MeshBasicMaterial({ 
-            color: 0x000000,
-            emissive: 0x000000
+            color: 0x000000
           });
+          this.screenMesh = child;
         }
         
         // Enable shadows
@@ -403,154 +552,220 @@ applyFixedPositionAndRotation(model) {
       }
     });
   }
-
-  // Add method to create XARCADE logo on the cabinet
-  addXarcadeLogo(object) {
-    // Create a canvas for the logo texture
+  createGameMenu() {
+    const games = [
+      { id: 'endersgame', name: 'Enders Game', available: true },
+      { id: 'cosmicchase', name: 'Cosmic Chase', available: false },
+      { id: 'cyberbattle', name: 'Cyber Battle', available: false },
+      { id: 'pixelwarfare', name: 'Pixel Warfare', available: false },
+      { id: 'neonrider', name: 'Neon Rider', available: false }
+    ];
+  
+    // Create canvas for the game menu
     const canvas = document.createElement('canvas');
     canvas.width = 512;
-    canvas.height = 128;
+    canvas.height = 384;
     const ctx = canvas.getContext('2d');
     
-    // Draw gradient background
-    const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-    gradient.addColorStop(0, '#004466');
-    gradient.addColorStop(0.5, '#18cae6');
-    gradient.addColorStop(1, '#004466');
+    // Draw background with a subtle gradient for more arcade feel
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, '#000000');
+    gradient.addColorStop(1, '#111111');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw text
-    ctx.font = 'bold 72px "Press Start 2P", monospace';
+    // Draw a border/bezel around the screen
+    ctx.strokeStyle = '#ff00ff';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+    
+    // Draw header with glow effect
+    ctx.shadowColor = '#ff00ff';
+    ctx.shadowBlur = 15;
+    ctx.font = 'bold 24px "Press Start 2P", Arial, monospace';
+    ctx.fillStyle = '#ff00ff'; // Purple
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.fillText('XARCADE', canvas.width/2, 40);
+    ctx.fillText('Choose a Game!', canvas.width/2, 80);
+    ctx.shadowBlur = 0;
     
-    // Outer glow/shadow
-    ctx.fillStyle = '#000033';
-    ctx.fillText('XARCADE', canvas.width/2 + 4, canvas.height/2 + 4);
+    // Draw game list
+    ctx.font = '16px "Press Start 2P", Arial, monospace';
     
-    // Main text
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('XARCADE', canvas.width/2, canvas.height/2);
-    
-    // Create texture and material
-    const texture = new THREE.CanvasTexture(canvas);
-    const material = new THREE.MeshBasicMaterial({
-      map: texture,
-      transparent: true
+    games.forEach((game, index) => {
+      const yPos = 140 + (index * 45);
+      
+      // Highlight selected game
+      if (index === this.selectedGameIndex) {
+        ctx.fillStyle = '#ff00ff'; // Purple for selected
+        
+        // Draw selection indicator
+        ctx.fillText('>', 120, yPos);
+        ctx.fillText('<', canvas.width - 120, yPos);
+      } else {
+        ctx.fillStyle = game.available ? '#888888' : '#444444';
+      }
+      
+      // Draw game name
+      ctx.fillText(game.name, canvas.width/2, yPos);
+      
+      // Draw availability
+      const status = game.available ? 'Ready' : 'Coming Soon';
+      ctx.font = '10px "Press Start 2P", Arial, monospace';
+      ctx.fillText(status, canvas.width/2, yPos + 20);
+      ctx.font = '16px "Press Start 2P", Arial, monospace';
     });
     
-    // Create a plane for the logo
-    const geometry = new THREE.PlaneGeometry(1, 0.25);
-    const logoMesh = new THREE.Mesh(geometry, material);
+    // Draw instructions
+    ctx.font = '10px "Press Start 2P", Arial, monospace';
+    ctx.fillStyle = '#ff00ff';
+    ctx.fillText('UP/DOWN to select, ENTER to play', canvas.width/2, 340);
     
-    // Position it on top of the cabinet
-    const box = new THREE.Box3().setFromObject(object);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
+    // Create or update the texture
+    if (!this.gameTexture) {
+      this.gameTexture = new THREE.CanvasTexture(canvas);
+      
+      if (this.screenMesh) {
+        if (Array.isArray(this.screenMesh.material)) {
+          this.screenMesh.material[0].map = this.gameTexture;
+          this.screenMesh.material[0].needsUpdate = true;
+        } else {
+          this.screenMesh.material.map = this.gameTexture;
+          this.screenMesh.material.needsUpdate = true;
+        }
+      }
+    } else {
+      this.gameTexture.image = canvas;
+      this.gameTexture.needsUpdate = true;
+    }
     
-    logoMesh.position.set(center.x, box.max.y + 0.15, center.z);
-    logoMesh.rotation.x = -0.2; // Tilt slightly for better visibility
-    
-    // Add to the scene
-    this.scene.add(logoMesh);
+    return games[this.selectedGameIndex];
   }
-
+  
+  
   identifyInteractiveElements(object) {
-    // This function will inspect the loaded model structure
-    // to find the screen, joystick, and buttons
-    
     console.log('Searching for interactive elements...');
     
+    // Create a flag to track if we found the screen
+    let screenFound = false;
+    
     object.traverse((child) => {
-      // Log all mesh names to help identify parts
       if (child.isMesh) {
         console.log('Found mesh:', child.name);
         
         // Look for naming patterns that might indicate screen, joystick, buttons
-        if (child.name.toLowerCase().includes('screen')) {
+        if (child.name.toLowerCase().includes('screen') || 
+            child.name.toLowerCase().includes('display') ||
+            child.name.toLowerCase().includes('monitor')) {
           this.setupScreen(child);
+          screenFound = true;
         } 
         else if (child.name.toLowerCase().includes('joystick')) {
           this.interactiveElements.joystick = child;
         }
-        else if (child.name.toLowerCase().includes('button')) {
+        else if (child.name.toLowerCase().includes('button') || 
+                 child.name.toLowerCase().includes('btn')) {
           this.interactiveElements.buttons.push(child);
         }
       }
     });
     
-    // If we couldn't identify the screen by name, we can try to identify it
-    // by geometry (typically a flat rectangular surface)
-    if (!this.screenMesh) {
+    // If we couldn't identify the screen by name, look for flat rectangular surfaces
+    if (!screenFound) {
       this.guessScreenMesh(object);
     }
     
-    // Log what we found
+    // Create game menu once screen is set up
+    if (this.screenMesh) {
+      this.createGameMenu();
+    }
+    
     console.log('Interactive elements found:', this.interactiveElements);
   }
   
   guessScreenMesh(object) {
-    // If screen wasn't found by name, try to guess which mesh is the screen
-    // based on geometry - looking for flat, rectangular surfaces
+    console.log('Attempting to guess which mesh is the screen...');
     let potentialScreens = [];
     
     object.traverse((child) => {
       if (child.isMesh) {
         // Check if this mesh could be a screen (flat rectangular surface)
         const geometry = child.geometry;
+        
+        // For PlaneGeometry
         if (geometry.type === 'PlaneGeometry' || geometry.type === 'PlaneBufferGeometry') {
-          potentialScreens.push(child);
-        } else if (geometry.type === 'BoxGeometry' || geometry.type === 'BoxBufferGeometry') {
-          // Also consider flat boxes
-          potentialScreens.push(child);
+          potentialScreens.push({mesh: child, score: 10});
+        } 
+        // For BoxGeometry with one dimension much smaller than others (like a flat panel)
+        else if (geometry.type === 'BoxGeometry' || geometry.type === 'BoxBufferGeometry') {
+          const params = geometry.parameters;
+          // If one dimension is significantly smaller, it might be a screen
+          if (params && (
+            (params.depth && params.depth < params.width * 0.2 && params.depth < params.height * 0.2) ||
+            (params.width && params.width < params.depth * 0.2 && params.width < params.height * 0.2) ||
+            (params.height && params.height < params.width * 0.2 && params.height < params.depth * 0.2)
+          )) {
+            potentialScreens.push({mesh: child, score: 8});
+          } else {
+            potentialScreens.push({mesh: child, score: 5});
+          }
         }
       }
     });
     
-    console.log('Potential screens found:', potentialScreens);
+    console.log('Potential screens found:', potentialScreens.length);
     
     if (potentialScreens.length > 0) {
-      // For now, just use the first potential screen
-      this.setupScreen(potentialScreens[0]);
+      // Sort by score (highest first)
+      potentialScreens.sort((a, b) => b.score - a.score);
+      this.setupScreen(potentialScreens[0].mesh);
     } else {
       // If we still can't find a screen, create one
       this.createVirtualScreen();
     }
-  }
-  
-  setupScreen(mesh) {
+}
+setupScreen(mesh) {
     console.log('Setting up screen mesh:', mesh);
     this.screenMesh = mesh;
     
-    // Create a dynamic texture for the game display
-    this.createGameTexture();
-    
-    // Apply the texture to the screen mesh
-    if (this.screenMesh.material) {
-      // If the mesh already has a material, we modify it
-      if (Array.isArray(this.screenMesh.material)) {
-        // If it's a multi-material, apply to the first one
-        this.screenMesh.material[0].map = this.gameTexture;
-        this.screenMesh.material[0].needsUpdate = true;
-      } else {
-        this.screenMesh.material.map = this.gameTexture;
-        this.screenMesh.material.needsUpdate = true;
-      }
-    } else {
-      // If not, we create a new material
-      this.screenMesh.material = new THREE.MeshBasicMaterial({
-        map: this.gameTexture
-      });
+    // Create game texture if it doesn't exist
+    if (!this.gameTexture) {
+      this.createGameTexture();
     }
+    
+    // Create a specific material for the screen with emissive properties
+    const screenMaterial = new THREE.MeshBasicMaterial({
+      map: this.gameTexture,
+      emissive: 0x222222,
+      emissiveIntensity: 0.5
+    });
+    
+    // Apply the material to the screen mesh
+    this.screenMesh.material = screenMaterial;
+    this.screenMesh.material.needsUpdate = true;
+    
+    // Make screen slightly forward-facing
+    if (this.cabinet) {
+      const box = new THREE.Box3().setFromObject(this.cabinet);
+      const cabinetDepth = box.max.z - box.min.z;
+      // Move screen slightly forward to avoid z-fighting
+      this.screenMesh.position.z += 0.001;
+    }
+    
+    // Create initial game menu
+    this.createGameMenu();
   }
   
   createVirtualScreen() {
     console.log('Creating virtual screen');
     
     // Create a plane geometry for the screen
-    const geometry = new THREE.PlaneGeometry(0.4, 0.3);
-    const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const geometry = new THREE.PlaneGeometry(0.5, 0.4);
+    const material = new THREE.MeshBasicMaterial({ 
+      color: 0x000000,
+      emissive: 0x222222,
+      emissiveIntensity: 0.5
+    });
     
     this.screenMesh = new THREE.Mesh(geometry, material);
     
@@ -563,19 +778,22 @@ applyFixedPositionAndRotation(model) {
       
       this.screenMesh.position.set(
         center.x,
-        center.y + size.y * 0.1, // Slightly above center
-        center.z + size.z * 0.5  // Front of cabinet
+        center.y + size.y * 0.25, // Position at upper portion of cabinet
+        center.z + size.z * 0.4   // Front of cabinet but not too far out
       );
       this.cabinet.add(this.screenMesh);
     } else {
       // Position in world if no cabinet
-      this.screenMesh.position.set(0, 1.2, 0.01);
+      this.screenMesh.position.set(0, 0.2, 0.01);
       this.scene.add(this.screenMesh);
     }
     
     // Set up the game texture
     this.createGameTexture();
     this.screenMesh.material.map = this.gameTexture;
+    
+    // Create initial game menu
+    this.createGameMenu();
   }
   
   createGameTexture() {
@@ -665,6 +883,45 @@ applyFixedPositionAndRotation(model) {
     }
     
     this.screenMesh.material.needsUpdate = true;
+  }
+  loadGame(gameId) {
+    if (gameId === 'endersgame') {
+      // Render loading message
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 384;
+      const ctx = canvas.getContext('2d');
+      
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.font = '20px "Press Start 2P", monospace';
+      ctx.fillStyle = '#ff00ff';
+      ctx.textAlign = 'center';
+      ctx.fillText('Loading Enders Game...', canvas.width/2, canvas.height/2);
+      
+      this.gameTexture.image = canvas;
+      this.gameTexture.needsUpdate = true;
+      
+      // Load the aesteroids game
+      setTimeout(() => {
+        // Create an iframe to load the game
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = '/aesteroids/index.html';
+        iframe.onload = () => {
+          try {
+            const gameCanvas = iframe.contentDocument.getElementById('gameCanvas');
+            if (gameCanvas) {
+              this.connectGame(gameCanvas);
+            }
+          } catch (error) {
+            console.error('Error loading game:', error);
+          }
+        };
+        document.body.appendChild(iframe);
+      }, 1500);
+    }
   }
 
   onWindowResize() {

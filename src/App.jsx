@@ -1,12 +1,12 @@
 import React from 'react';
-import ArcadeCabinetComponent from './components/ArcadeCabinetComponent.jsx'; // Note: using your existing filename with 's'
+import ArcadeCabinetComponent from './components/ArcadeCabinetComponent.jsx';
 
 function App() {
   return (
     <div className="xarcade-app">
-      <header>
+      {/* <header>
         <h1 className="neon-text">XARCADE</h1>
-      </header>
+      </header> */}
       <main>
         <ArcadeCabinetComponent />
       </main>

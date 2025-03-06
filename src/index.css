@@ -1,6 +1,7 @@
 :root {
     --neon-green: #18cae6;
     --neon-blue: #0ff;
+    --neon-purple: #ff00ff;
     --dark-bg: #000;
   }
   
@@ -9,7 +10,7 @@
     padding: 0;
     font-family: 'Press Start 2P', 'Courier New', monospace;
     background-color: var(--dark-bg);
-    color: var(--neon-green);
+    color: var(--neon-purple);
     line-height: 1.6;
     overflow-x: hidden;
   }
@@ -17,5 +18,52 @@
   #root {
     width: 100%;
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
   
+  header {
+    padding: 1.5rem 0; /* Slightly reduced padding */
+    text-align: center;
+    position: relative;
+    z-index: 10; /* Ensure it stays above other elements */
+  }
+  
+  .neon-text {
+    font-size: 4rem; /* Slightly larger for emphasis */
+    color: var(--neon-purple);
+    text-shadow: 0 0 5px var(--neon-purple), 0 0 10px var(--neon-purple);
+    letter-spacing: 10px; /* Increased letter spacing */
+    animation: neonPulse 1.5s infinite alternate;
+    margin: 0; /* Remove default margins */
+  }
+  
+  @keyframes neonPulse {
+    from {
+      text-shadow: 0 0 5px var(--neon-purple), 0 0 10px var(--neon-purple);
+    }
+    to {
+      text-shadow: 0 0 8px var(--neon-purple), 0 0 15px var(--neon-purple), 0 0 20px var(--neon-purple);
+    }
+  }
+  
+  main {
+    flex: 1;
+    padding: 0 1rem; /* Reduced horizontal padding */
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box; /* Makes sure padding doesn't affect overall width */
+  }
+  
+  footer {
+    text-align: center;
+    padding: 1rem;
+    margin-top: auto;
+  }
+  
+  .copyright {
+    font-size: 0.6rem;
+    color: var(--neon-purple);
+    opacity: 0.7;
+  }
