@@ -1,5 +1,5 @@
 import React from 'react';
-import ArcadeCabinetComponent from './components/ArcadeCabinetComponent.jsx';
+import ArcadeScreen from './components/ArcadeScreen.jsx';
 
 function App() {
   return (
@@ -8,7 +8,7 @@ function App() {
         <h1 className="neon-text">XARCADE</h1>
       </header> */}
       <main>
-        <ArcadeCabinetComponent />
+        <ArcadeScreen />
       </main>
       <footer>
         <p>&copy; 2025 Xarcade - Retro Gaming Experience</p>
