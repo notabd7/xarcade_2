@@ -10,21 +10,21 @@ const ArcadeCabinetComponent = () => {
 
   useEffect(() => {
     console.log('ArcadeCabinetComponent mounted');
+    console.log('Container ref:', containerRef.current);
     
     // Initialize the 3D cabinet
     if (containerRef.current && !arcadeCabinetRef.current) {
       try {
         console.log('Creating new ArcadeCabinet instance');
         arcadeCabinetRef.current = new ArcadeCabinet(containerRef.current);
+        setLoading(false);
         
-        // Initialize with game menu
+        // Display welcome screen after a short delay to ensure model is loaded
         setTimeout(() => {
-          if (arcadeCabinetRef.current && arcadeCabinetRef.current.screenMesh) {
-            arcadeCabinetRef.current.selectedGameIndex = 0;
-            arcadeCabinetRef.current.createGameMenu();
-            setLoading(false);
+          if (arcadeCabinetRef.current) {
+            arcadeCabinetRef.current.displayWelcomeScreen();
           }
-        }, 2000); // Give time for the model to load
+        }, 2000);
       } catch (err) {
         console.error('Error initializing ArcadeCabinet:', err);
         setError(`Failed to initialize 3D scene: ${err.message}`);

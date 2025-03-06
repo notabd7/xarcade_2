@@ -281,6 +281,7 @@ class ArcadeCabinet {
     this.scene.add(cabinetGroup);
     this.cabinet = cabinetGroup;
     
+    
     // Create the game texture
     this.createGameTexture();
     this.screenMesh.material.map = this.gameTexture;
@@ -291,6 +292,9 @@ class ArcadeCabinet {
     
     this.modelLoaded = true;
     console.log('Fallback cabinet created successfully');
+    this.modelLoaded = true;
+    console.log('Fallback cabinet created successfully');
+    this.displayWelcomeScreen();
   }
 
   handleLoadedModel(object) {
@@ -344,11 +348,96 @@ class ArcadeCabinet {
     // Find interactive elements
     this.identifyInteractiveElements(object);
     
+    this.modelLoaded = true;
+    console.log('Model loaded and positioned successfully');
+
+    this.displayWelcomeScreen();
+  
     
     
     this.modelLoaded = true;
     console.log('Model loaded and positioned successfully');
   }
+
+  // Add this new function to your ArcadeCabinet class in src/three/ArcadeCabinet.js
+
+
+
+displayWelcomeScreen() {
+  console.log('Displaying welcome screen');
+  
+  // Create a canvas for the welcome screen
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 384;
+  const ctx = canvas.getContext('2d');
+  
+  // Fill background with black
+  ctx.fillStyle = 'black';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Add gradient border
+  const borderWidth = 10;
+  ctx.strokeStyle = '#ff00ff'; // Match the magenta/pink color from your cabinet
+  ctx.lineWidth = borderWidth;
+  ctx.strokeRect(borderWidth/2, borderWidth/2, 
+                canvas.width - borderWidth, canvas.height - borderWidth);
+  
+  // Add welcome text
+  ctx.font = 'bold 40px "Press Start 2P", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  
+  // Create neon glow effect
+  ctx.shadowColor = '#ff00ff';
+  ctx.shadowBlur = 15;
+  ctx.fillStyle = '#ff00ff';
+  
+  // Draw main text
+  ctx.fillText('WELCOME TO', canvas.width/2, canvas.height/2 - 50);
+  ctx.fillText('XARCADE', canvas.width/2, canvas.height/2 + 30);
+  
+  // Add instructions text
+  ctx.font = '14px "Press Start 2P", monospace';
+  ctx.shadowBlur = 5;
+  ctx.fillStyle = '#18cae6'; // Cyan for instructions
+  ctx.fillText('Press START to begin', canvas.width/2, canvas.height/2 + 100);
+  
+  // Create or update texture
+  if (!this.gameTexture) {
+    this.gameTexture = new THREE.CanvasTexture(canvas);
+    
+    // Make sure the screen mesh has a material that can use the texture
+    if (this.screenMesh) {
+      if (!this.screenMesh.material) {
+        this.screenMesh.material = new THREE.MeshBasicMaterial({ map: this.gameTexture });
+      } else if (Array.isArray(this.screenMesh.material)) {
+        // If it's a multi-material
+        this.screenMesh.material[0].map = this.gameTexture;
+        this.screenMesh.material[0].needsUpdate = true;
+      } else {
+        this.screenMesh.material.map = this.gameTexture;
+        this.screenMesh.material.needsUpdate = true;
+      }
+    } else {
+      console.error('No screen mesh found to apply texture');
+    }
+  } else {
+    // Update existing texture
+    this.gameTexture.image = canvas;
+    this.gameTexture.needsUpdate = true;
+    
+    if (this.screenMesh && this.screenMesh.material) {
+      if (Array.isArray(this.screenMesh.material)) {
+        this.screenMesh.material[0].needsUpdate = true;
+      } else {
+        this.screenMesh.material.needsUpdate = true;
+      }
+    }
+  }
+  
+  console.log('Welcome screen applied:', this.gameTexture, this.screenMesh);
+}
   
   // New method to apply the fixed position and rotation
 // Replace the applyFixedPositionAndRotation method with this centered version
