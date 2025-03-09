@@ -16,6 +16,12 @@ const ButtonInteractivity = () => {
       } else {
         button.style.transform = 'translateZ(8px)';
       }
+      
+      // Trigger a keyboard event for the corresponding key
+      if (button.dataset.key) {
+        const event = new KeyboardEvent('keydown', { key: button.dataset.key });
+        window.dispatchEvent(event);
+      }
     };
     
     const handleMouseUp = (button) => {

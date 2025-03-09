@@ -27,7 +27,7 @@ const GameBoyUI = ({ children }) => {
     <div className="gba-container">
       <div className="screen-bezel">
         {/* The canvas serves as the background */}
-        <canvas ref={canvasRef} id="screen" className="screen" width="667" height="400"></canvas>
+        <canvas ref={canvasRef} id="screen" className="screen" width="667" height="500"></canvas>
         
         {/* Overlay for child components (game menu, gameplay) */}
         <div className="screen-content">
@@ -37,29 +37,29 @@ const GameBoyUI = ({ children }) => {
       
       {/* D-pad */}
       <div className="d-pad">
-        <div className="d-pad-button d-pad-up"></div>
-        <div className="d-pad-button d-pad-right"></div>
-        <div className="d-pad-button d-pad-down"></div>
-        <div className="d-pad-button d-pad-left"></div>
+        <div className="d-pad-button d-pad-up" data-key="ArrowUp"></div>
+        <div className="d-pad-button d-pad-right" data-key="ArrowRight"></div>
+        <div className="d-pad-button d-pad-down" data-key="ArrowDown"></div>
+        <div className="d-pad-button d-pad-left" data-key="ArrowLeft"></div>
       </div>
       
       {/* Action buttons */}
-      <div className="a-button">A</div>
-      <div className="b-button">B</div>
+      <div className="a-button" data-key="a">A</div>
+      <div className="b-button" data-key="b">B</div>
       
       {/* Start and Select buttons */}
-      <div className="start-button"></div>
-      <div className="select-button"></div>
+      <div className="start-button" data-key="Enter"></div>
+      <div className="select-button" data-key="Shift"></div>
       
       {/* Shoulder buttons */}
       <div className="shoulder-button-area left">
         <div className="shoulder-curve left"></div>
-        <div className="l-button"></div>
+        <div className="l-button" data-key="q"></div>
       </div>
       
       <div className="shoulder-button-area right">
         <div className="shoulder-curve right"></div>
-        <div className="r-button"></div>
+        <div className="r-button" data-key="e"></div>
       </div>
       
       <div className="logo">GAME BOY ADVANCE</div>
