@@ -13,16 +13,30 @@ function ArcadeCabinet3D({ children }) {
         <directionalLight position={[0, 5, 8]} intensity={1} castShadow />
         <spotLight position={[0, 5, 10]} angle={0.3} penumbra={0.8} intensity={1.5} castShadow />
         
-        {/* Fixed camera position for front view only - no OrbitControls */}
-        <PerspectiveCamera makeDefault position={[0, 0, 7]} fov={50} />
+        {/* Adjusted camera position and angle to look down at the setup */}
+        <PerspectiveCamera makeDefault position={[0, 3, 8]} fov={40} />
         
-        <Monitor>
-          {children}
-        </Monitor>
+        {/* Monitor positioned higher, like it's on a desk */}
+        <group position={[0, 4.5, 0]}>
+          <Monitor>
+            {children}
+          </Monitor>
+        </group>
         
-        {/* Buttons and joystick moved further away from the monitor */}
-        <Buttons position={[-2.5, -1, 0.5]} />
-        <Joystick position={[2.5, -1, 0.5]} />
+        {/* Desk surface */}
+        <mesh receiveShadow position={[0, 2.9, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[10, 14]} />
+          <meshStandardMaterial color="white" />
+        </mesh>
+        
+        {/* Controls positioned in front of the monitor on the desk surface */}
+        <group position={[-2, 0.3, 3]}>
+          {/* Buttons on the left */}
+          <Buttons position={[-2.5, -1, 0.5]} />
+          
+          {/* Joystick on the right */}
+          <Joystick position={[-2, 0.3, 3]} />
+        </group>
       </Canvas>
     </div>
   );
